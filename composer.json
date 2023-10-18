@@ -1,0 +1,53 @@
+{
+    "name": "potibm/phluesky",
+    "description": "An small PHP library for posting messages to the bluesky social network using the AT Protocol.",
+    "minimum-stability": "stable",
+    "license": "MIT",
+    "authors": [
+      {
+        "name": "Stefan Keßeler",
+        "email": "poti@kaoz.org"
+      }
+    ],
+    "keywords": [
+      "bluesky",
+      "at cprotocol",
+      "atproto"
+    ],
+    "require": {
+      "php": "^8.2",
+      "psr/http-client": "^1.0",
+      "psr/http-client-implementation": "*",
+      "psr/http-factory": "^1.0",
+      "psr/http-factory-implementation": "*",
+      "psr/http-message": "^1.1",
+      "psr/http-message-implementation": "*",
+        "php-http/discovery": "^1.19"
+    },
+    "require-dev": {
+      "phpunit/phpunit": "^10",
+      "squizlabs/php_codesniffer": "^3.6",
+      "nyholm/psr7": "^1.8",
+      "symfony/http-client": "^6.3"
+    },
+    "autoload": {
+      "psr-4": {
+        "potibm\\Bluesky\\": "src/"
+      }
+    },
+    "autoload-dev": {
+      "psr-4": {
+        "potibm\\Bluesky\\Test\\": "test/"
+      }
+    },
+    "scripts": {
+      "codestyle": "phpcs src test --standard=PSR12 -sp",
+      "codestyle-fix": "phpcbf src test --standard=PSR12 -sp",
+      "test": "phpunit test"
+    },
+    "config": {
+        "allow-plugins": {
+            "php-http/discovery": false
+        }
+    }
+}
