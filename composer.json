@@ -41,9 +41,9 @@
       }
     },
     "scripts": {
-      "codestyle": "phpcs src test --standard=PSR12 -sp",
-      "codestyle-fix": "phpcbf src test --standard=PSR12 -sp",
-      "test": "phpunit test"
+      "codestyle": "phpcs src tests --standard=PSR12 -sp",
+      "codestyle-fix": "phpcbf src tests --standard=PSR12 -sp",
+      "test": "phpunit tests"
     },
     "config": {
         "allow-plugins": {
