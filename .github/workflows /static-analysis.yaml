@@ -1,4 +1,4 @@
-zname: Code style
+name: Code style
 
 on:
   pull_request:
