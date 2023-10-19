@@ -1,4 +1,4 @@
-name: Code style
+zname: Code style
 
 on:
   pull_request:
@@ -22,4 +22,4 @@ jobs:
         run: composer install
 
       - name: Run script
-        run: composer run check
+        run: composer run codestyle
