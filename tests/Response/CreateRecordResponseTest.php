@@ -11,7 +11,7 @@ use potibm\Bluesky\Response\CreateRecordResponse;
 #[CoversClass(CreateRecordResponse::class)]
 class CreateRecordResponseTest extends TestCase
 {
-    public function testCreateValidObject()
+    public function testCreateValidObject(): void
     {
         $createResponse = new \stdClass();
         $createResponse->uri = 'an-uri';
@@ -22,21 +22,21 @@ class CreateRecordResponseTest extends TestCase
         $this->assertEquals('anothercid', $create->getCid());
     }
 
-    public function testMissingCidValue()
+    public function testMissingCidValue(): void
     {
         $sessionResponse = new \stdClass();
         $sessionResponse->uri = 'an-uri';
 
         $this->expectException(\potibm\Bluesky\Exception\InvalidPayloadException::class);
-        $session = new CreateRecordResponse($sessionResponse);
+        new CreateRecordResponse($sessionResponse);
     }
 
-    public function testMissingUriValue()
+    public function testMissingUriValue(): void
     {
         $sessionResponse = new \stdClass();
         $sessionResponse->cid = 'anothercid';
 
         $this->expectException(\potibm\Bluesky\Exception\InvalidPayloadException::class);
-        $session = new CreateRecordResponse($sessionResponse);
+        new CreateRecordResponse($sessionResponse);
     }
 }

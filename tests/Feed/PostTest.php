@@ -18,7 +18,7 @@ use potibm\Bluesky\Richtext\FacetMention;
 #[UsesClass(FacetMention::class)]
 class PostTest extends TestCase
 {
-    public function testMinimalToJson()
+    public function testMinimalToJson(): void
     {
         $text = 'Hello world';
         $now = new \DateTimeImmutable('2023-08-07 05:46:14.423045');
@@ -39,7 +39,7 @@ class PostTest extends TestCase
         $this->assertEquals($jsonOutput, $post->jsonSerialize());
     }
 
-    public function testLanguages()
+    public function testLanguages(): void
     {
         $post = Post::create('Hello world');
         $post->setLangs(['en', 'fr']);
@@ -47,11 +47,11 @@ class PostTest extends TestCase
         $this->assertEquals(['en', 'fr'], $post->getLangs());
 
         $jsonOutput = $post->jsonSerialize();
-        $this->arrayHasKey('langs', $jsonOutput);
+        $this->assertArrayHasKey('langs', $jsonOutput);
         $this->assertEquals(['en', 'fr'], $jsonOutput['langs']);
     }
 
-    public function testAddedMention()
+    public function testAddedMention(): void
     {
         $mention = FacetMention::create('my:did', 0, 11);
 
@@ -59,12 +59,13 @@ class PostTest extends TestCase
         $post->addFacet($mention);
 
         $jsonOutput = $post->jsonSerialize();
-        $this->arrayHasKey('facets ', $jsonOutput);
+
+        $this->assertArrayHasKey('facets', $jsonOutput);
         $this->assertCount(1, $jsonOutput['facets']);
         $this->assertEquals($mention->jsonSerialize(), $jsonOutput['facets'][0]);
     }
 
-    public function testAddedLink()
+    public function testAddedLink(): void
     {
         $link = FacetLink::create('myuri', 5, 16);
 
@@ -72,12 +73,12 @@ class PostTest extends TestCase
         $post->addFacet($link);
 
         $jsonOutput = $post->jsonSerialize();
-        $this->arrayHasKey('facets ', $jsonOutput);
+        $this->assertArrayHasKey('facets', $jsonOutput);
         $this->assertCount(1, $jsonOutput['facets']);
         $this->assertEquals($link->jsonSerialize(), $jsonOutput['facets'][0]);
     }
 
-    public function testRemoveAllFacets()
+    public function testRemoveAllFacets(): void
     {
         $post = Post::create('Hello world');
         $post->addFacet(FacetLink::create('myuri', 5, 16));

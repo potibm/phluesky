@@ -13,7 +13,7 @@ use potibm\Bluesky\Richtext\FacetLink;
 #[CoversClass(AbstractFacet::class)]
 class FacetLinkTest extends TestCase
 {
-    public function testCreate()
+    public function testCreate(): void
     {
         $link = FacetLink::create('myuri', 5, 16);
 
@@ -42,7 +42,7 @@ class FacetLinkTest extends TestCase
         );
     }
 
-    public function testModifyUri()
+    public function testModifyUri(): void
     {
         $link = new FacetLink();
         $link->setUri('mynewuri');

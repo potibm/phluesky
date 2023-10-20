@@ -13,7 +13,7 @@ class Post implements JsonSerializable
 
     private string $text = '';
 
-    private ?\DateTimeImmutable $createdAt = null;
+    private \DateTimeImmutable $createdAt;
 
     private array $facets = [];
 
@@ -34,12 +34,12 @@ class Post implements JsonSerializable
         $this->text = $text;
     }
 
-    public function getCreatedAt(): ?\DateTimeImmutable
+    public function getCreatedAt(): \DateTimeImmutable
     {
         return $this->createdAt;
     }
 
-    public function setCreatedAt(?\DateTimeImmutable $createdAt): void
+    public function setCreatedAt(\DateTimeImmutable $createdAt): void
     {
         $this->createdAt = $createdAt;
     }
