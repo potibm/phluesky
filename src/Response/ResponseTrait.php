@@ -10,7 +10,7 @@ trait ResponseTrait
 {
     private function getSessionProperty(\stdClass $sessionData, string $property): string
     {
-        if (!property_exists($sessionData, $property)) {
+        if (! property_exists($sessionData, $property)) {
             throw new InvalidPayloadException('JSON response does not contain "' . $property . '" property');
         }
 

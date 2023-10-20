@@ -35,8 +35,8 @@ class BlueskyPostServiceTest extends TestCase
         $this->assertCount(1, $resultPost->getFacets());
         $this->assertInstanceOf(FacetMention::class, $resultPost->getFacets()[0]);
         /**
- * @var FacetMention $firstFacet
-*/
+         * @var FacetMention $firstFacet
+         */
         $firstFacet = $resultPost->getFacets()[0];
         $this->assertEquals('did:plc:ewvi7nxzyoun6zhxrhs64oiz', $firstFacet->getDid());
         $this->assertEquals(23, $firstFacet->getStart());
@@ -50,8 +50,8 @@ class BlueskyPostServiceTest extends TestCase
         $this->assertCount(1, $resultPost->getFacets());
         $this->assertInstanceOf(FacetLink::class, $resultPost->getFacets()[0]);
         /**
- * @var FacetLink $firstFacet
-*/
+         * @var FacetLink $firstFacet
+         */
         $firstFacet = $resultPost->getFacets()[0];
         $this->assertEquals('https://en.wikipedia.org/wiki/CBOR', $firstFacet->getUri());
         $this->assertEquals(74, $firstFacet->getStart());

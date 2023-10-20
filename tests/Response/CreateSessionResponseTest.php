@@ -5,13 +5,8 @@ declare(strict_types=1);
 namespace potibm\Bluesky\Test\Response;
 
 use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\TestCase;
-use potibm\Bluesky\Feed\Post;
 use potibm\Bluesky\Response\CreateSessionResponse;
-use potibm\Bluesky\Richtext\AbstractFacet;
-use potibm\Bluesky\Richtext\FacetLink;
-use potibm\Bluesky\Richtext\FacetMention;
 
 #[CoversClass(CreateSessionResponse::class)]
 class CreateSessionResponseTest extends TestCase

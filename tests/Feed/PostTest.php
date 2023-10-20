@@ -30,9 +30,10 @@ class PostTest extends TestCase
         $this->assertEquals($text, $post->getText());
         $this->assertEquals($now->getTimestamp(), $post->getCreatedAt()->getTimestamp());
 
-        $jsonOutput = ['$type' => "app.bsky.feed.post",
+        $jsonOutput = [
+            '$type' => "app.bsky.feed.post",
             'text' => "Hello world",
-            'createdAt' => "2023-08-07T05:46:14.423045Z"
+            'createdAt' => "2023-08-07T05:46:14.423045Z",
         ];
 
         $this->assertEquals($jsonOutput, $post->jsonSerialize());

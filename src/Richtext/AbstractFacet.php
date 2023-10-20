@@ -34,7 +34,6 @@ abstract class AbstractFacet implements JsonSerializable
         $this->end = $end;
     }
 
-
     abstract protected function getFeature(): array;
 
     public function jsonSerialize(): mixed
@@ -42,11 +41,11 @@ abstract class AbstractFacet implements JsonSerializable
         return [
             "index" => [
                 "byteStart" => $this->start,
-                "byteEnd" => $this->end
+                "byteEnd" => $this->end,
             ],
             "features" => [
-                $this->getFeature()
-            ]
+                $this->getFeature(),
+            ],
         ];
     }
 }

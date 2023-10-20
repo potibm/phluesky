@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace potibm\Bluesky\Test;
 
 use Http\Discovery\Psr17Factory;
-use Http\Discovery\StreamFactoryDiscovery;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\TestCase;
+use potibm\Bluesky\BlueskyApi;
 use potibm\Bluesky\Exception\HttpRequestException;
 use potibm\Bluesky\Exception\HttpStatusCodeException;
 use potibm\Bluesky\Exception\InvalidPayloadException;
@@ -17,15 +17,10 @@ use potibm\Bluesky\HttpComponentsManager;
 use potibm\Bluesky\Response\CreateRecordResponse;
 use potibm\Bluesky\Response\CreateSessionResponse;
 use potibm\Bluesky\Response\ResponseTrait;
-use potibm\Bluesky\Richtext\AbstractFacet;
-use potibm\Bluesky\Richtext\FacetLink;
 use Psr\Http\Client\ClientExceptionInterface;
 use Psr\Http\Client\ClientInterface;
-use Psr\Http\Message\RequestFactoryInterface;
-use Psr\Http\Message\StreamFactoryInterface;
-use Psr\Http\Message\UriFactoryInterface;
 use Psr\Http\Message\ResponseInterface;
-use potibm\Bluesky\BlueskyApi;
+use Psr\Http\Message\UriFactoryInterface;
 
 #[CoversClass(BlueskyApi::class)]
 #[CoversClass(HttpComponentsManager::class)]
@@ -38,7 +33,7 @@ class BlueskyApiTest extends TestCase
     public function testGetDidForHandle()
     {
         $httpComponent = $this->generateHttpComponentsManager(200, true, [
-            'did' => 'did:bluesky:1234567890'
+            'did' => 'did:bluesky:1234567890',
         ]);
         $api = new BlueskyApi('identifier', 'password', $httpComponent);
 
@@ -80,7 +75,7 @@ class BlueskyApiTest extends TestCase
         $this->expectException(InvalidPayloadException::class);
 
         $httpComponent = $this->generateHttpComponentsManager(200, true, [
-            "withoutdid" => "value"
+            "withoutdid" => "value",
         ]);
         $api = new BlueskyApi('identifier', 'password', $httpComponent);
         $api->getDidForHandle('handle');
@@ -123,7 +118,7 @@ class BlueskyApiTest extends TestCase
         }
 
         $httpClient = $this->createMock(ClientInterface::class);
-        call_user_func_array(array($httpClient->method('sendRequest'), "willReturn"), $responses);
+        call_user_func_array([$httpClient->method('sendRequest'), "willReturn"], $responses);
 
         return new HttpComponentsManager(
             $httpClient,
