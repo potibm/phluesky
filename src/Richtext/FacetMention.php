@@ -22,12 +22,11 @@ class FacetMention extends AbstractFacet
         $this->did = $did;
     }
 
-
     protected function getFeature(): array
     {
         return [
             '$type' => parent::TYPE . '#mention',
-            "did" => $this->did
+            "did" => $this->did,
         ];
     }
 

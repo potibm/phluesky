@@ -26,7 +26,7 @@ class FacetLink extends AbstractFacet
     {
         return [
             '$type' => parent::TYPE . '#link',
-            "uri" => $this->uri
+            "uri" => $this->uri,
         ];
     }
 

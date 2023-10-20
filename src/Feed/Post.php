@@ -86,7 +86,6 @@ class Post implements JsonSerializable
             }
         }
         return $post;
-        // TODO: Implement jsonSerialize() method.
     }
 
     public static function create(string $text, string $lang = 'en'): self

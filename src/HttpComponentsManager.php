@@ -14,8 +14,11 @@ use Psr\Http\Message\UriFactoryInterface;
 class HttpComponentsManager
 {
     public readonly ClientInterface $httpClient;
+
     public readonly UriFactoryInterface $uriFactory;
+
     public readonly RequestFactoryInterface $requestFactory;
+
     public readonly StreamFactoryInterface $streamFactory;
 
     public function __construct(

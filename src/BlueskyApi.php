@@ -31,12 +31,14 @@ class BlueskyApi implements BlueskyApiInterface
         $jsonBody = $this->performXrpcCall(
             'GET',
             'com.atproto.identity.resolveHandle',
-            ['handle' => $handle],
+            [
+                'handle' => $handle,
+            ],
             [],
             false
         );
 
-        if (!property_exists($jsonBody, 'did')) {
+        if (! property_exists($jsonBody, 'did')) {
             // Handle missing "did" property in JSON
             throw new InvalidPayloadException('JSON response does not contain "did" property');
         }
