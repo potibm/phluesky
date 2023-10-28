@@ -10,6 +10,7 @@ use potibm\Bluesky\Exception\InvalidPayloadException;
 use potibm\Bluesky\Feed\Post;
 use potibm\Bluesky\Response\CreateRecordResponse;
 use potibm\Bluesky\Response\CreateSessionResponse;
+use potibm\Bluesky\Response\UploadBlobResponse;
 use Psr\Http\Client\ClientExceptionInterface;
 
 class BlueskyApi implements BlueskyApiInterface
@@ -34,6 +35,7 @@ class BlueskyApi implements BlueskyApiInterface
             [
                 'handle' => $handle,
             ],
+            [],
             [],
             false
         );
@@ -60,6 +62,27 @@ class BlueskyApi implements BlueskyApiInterface
         ));
     }
 
+    public function uploadBlob(string $image, string $mimeType): UploadBlobResponse
+    {
+        $jsonBody = $this->performXrpcCall(
+            'POST',
+            'com.atproto.repo.uploadBlob',
+            [],
+            $image,
+            [
+                'Content-Type' => $mimeType,
+            ],
+            true,
+            false
+        );
+
+        if (! property_exists($jsonBody, 'blob')) {
+            throw new InvalidPayloadException('JSON response does not contain "blob" property');
+        }
+
+        return new UploadBlobResponse($jsonBody->blob);
+    }
+
     private function getSession(): CreateSessionResponse
     {
         if ($this->session === null) {
@@ -79,6 +102,7 @@ class BlueskyApi implements BlueskyApiInterface
                 'identifier' => $this->identifier,
                 'password' => $this->password,
             ],
+            [],
             false
         ));
     }
@@ -87,8 +111,10 @@ class BlueskyApi implements BlueskyApiInterface
         string $httpMethod,
         string $method,
         array $params = [],
-        array $body = [],
-        bool $autheticated = true
+        mixed $body = [],
+        array $headers = [],
+        bool $authenticated = true,
+        bool $encodeBody = true
     ): \stdClass {
         $uri = $this->baseUrl . 'xrpc/' . $method;
         if ($params) {
@@ -96,17 +122,24 @@ class BlueskyApi implements BlueskyApiInterface
         }
         $uriObject = $this->options->uriFactory->createUri($uri);
 
-        $request = $this->options->requestFactory->createRequest($httpMethod, $uriObject);
-        $request = $request
-            ->withHeader('Content-Type', 'application/json')
-            ->withHeader('Accept', 'application/json');
-        if ($autheticated) {
-            $request = $request->withHeader('Authorization', 'Bearer ' . $this->getSession()->getAuthToken());
+        $headers = array_merge([
+            'Content-Type' => 'application/json',
+            'Accept' => 'application/json',
+        ], $headers);
+        if ($authenticated) {
+            $headers['Authorization'] = 'Bearer ' . $this->getSession()->getAuthToken();
         }
+
+        $request = $this->options->requestFactory->createRequest($httpMethod, $uriObject);
+        foreach ($headers as $header => $value) {
+            $request = $request->withHeader($header, $value);
+        }
+
         if ($body) {
-            $bodyObject = $this->options->streamFactory->createStream(
-                json_encode($body)
-            );
+            if ($encodeBody) {
+                $body = json_encode($body);
+            }
+            $bodyObject = $this->options->streamFactory->createStream($body);
             $request = $request->withBody($bodyObject);
         }
 
@@ -118,7 +151,7 @@ class BlueskyApi implements BlueskyApiInterface
         }
 
         if ($response->getStatusCode() != 200) {
-            throw new HttpStatusCodeException('Received an HTTP error: ' . $response->getStatusCode());
+            throw new HttpStatusCodeException('Received an HTTP error (' . $response->getStatusCode() . '): ' . (string) $response->getBody(), $response->getStatusCode());
         }
 
         $jsonBody = json_decode((string) $response->getBody(), false);

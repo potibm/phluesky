@@ -76,4 +76,21 @@ class BlueskyPostService
 
         return $resultPost;
     }
+
+    public function addImage(Post $post, string $imageFile, string $altText): Post
+    {
+        if (! file_exists($imageFile)) {
+            throw new \Exception('File not found: ' . $imageFile);
+        }
+
+        $blob = $this->blueskyClient->uploadBlob(
+            file_get_contents($imageFile),
+            mime_content_type($imageFile)
+        );
+
+        $resultPost = clone $post;
+        $resultPost->getImages()->addImage($blob, $altText);
+
+        return $resultPost;
+    }
 }

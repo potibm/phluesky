@@ -7,15 +7,22 @@ namespace potibm\Bluesky\Test\Feed;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\TestCase;
+use potibm\Bluesky\Embed\Images;
 use potibm\Bluesky\Feed\Post;
+use potibm\Bluesky\Response\ResponseTrait;
+use potibm\Bluesky\Response\UploadBlobResponse;
 use potibm\Bluesky\Richtext\AbstractFacet;
 use potibm\Bluesky\Richtext\FacetLink;
 use potibm\Bluesky\Richtext\FacetMention;
+use potibm\Bluesky\Test\Response\UploadBlobResponseTest;
 
 #[CoversClass(Post::class)]
 #[UsesClass(AbstractFacet::class)]
 #[UsesClass(FacetLink::class)]
 #[UsesClass(FacetMention::class)]
+#[UsesClass(Images::class)]
+#[UsesClass(ResponseTrait::class)]
+#[UsesClass(UploadBlobResponse::class)]
 class PostTest extends TestCase
 {
     public function testMinimalToJson(): void
@@ -85,5 +92,23 @@ class PostTest extends TestCase
         $this->assertCount(1, $post->getFacets());
         $post->removeAllFacets();
         $this->assertCount(0, $post->getFacets());
+    }
+
+    public function testAddedImage(): void
+    {
+        $post = Post::create('Hello world');
+        $post->getImages()->addImage(
+            new UploadBlobResponse(UploadBlobResponseTest::generateBlobResponse()),
+            'an alt text'
+        );
+
+        $this->assertCount(1, $post->getImages());
+
+        $json = $post->jsonSerialize();
+        $this->assertArrayHasKey('embed', $json);
+        $this->assertArrayHasKey('$type', $json['embed']);
+        $this->assertEquals('app.bsky.embed.images', $json['embed']['$type']);
+        $this->assertArrayHasKey('images', $json['embed']);
+        $this->assertCount(1, $json['embed']['images']);
     }
 }

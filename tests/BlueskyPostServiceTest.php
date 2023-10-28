@@ -9,6 +9,7 @@ use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\TestCase;
 use potibm\Bluesky\BlueskyApi;
 use potibm\Bluesky\BlueskyPostService;
+use potibm\Bluesky\Embed\Images;
 use potibm\Bluesky\Feed\Post;
 use potibm\Bluesky\Richtext\AbstractFacet;
 use potibm\Bluesky\Richtext\FacetLink;
@@ -19,6 +20,7 @@ use potibm\Bluesky\Richtext\FacetMention;
 #[UsesClass(AbstractFacet::class)]
 #[UsesClass(FacetLink::class)]
 #[UsesClass(FacetMention::class)]
+#[UsesClass(Images::class)]
 class BlueskyPostServiceTest extends TestCase
 {
     private const SAMPLE = '✨ example mentioning @atproto.com ' .
@@ -68,6 +70,21 @@ class BlueskyPostServiceTest extends TestCase
         $this->assertCount(2, $resultPost->getFacets());
         $this->assertInstanceOf(FacetMention::class, $resultPost->getFacets()[0]);
         $this->assertInstanceOf(FacetLink::class, $resultPost->getFacets()[1]);
+    }
+
+    public function testAddImage(): void
+    {
+        /** @psalm-suppress PossiblyNullArgument, PossiblyNullReference */
+        $resultPost = $this->postService->addImage($this->post, __FILE__, 'an alt text');
+
+        $this->assertCount(1, $resultPost->getImages());
+    }
+
+    public function testAddImgeWithMissingImage(): void
+    {
+        $this->expectException(\Exception::class);
+        /** @psalm-suppress PossiblyNullArgument, PossiblyNullReference */
+        $this->postService->addImage($this->post, __DIR__ . '/missingfile.png', 'an alt text');
     }
 
     public function setUp(): void

@@ -16,6 +16,7 @@
     ],
     "require": {
       "php": "^8.2",
+      "ext-fileinfo": "*",
       "psr/http-client": "^1.0",
       "psr/http-client-implementation": "*",
       "psr/http-factory": "^1.0",
@@ -39,7 +40,7 @@
     },
     "autoload-dev": {
       "psr-4": {
-        "potibm\\Bluesky\\Test\\": "test/"
+        "potibm\\Bluesky\\Test\\": "tests/"
       }
     },
     "scripts": {

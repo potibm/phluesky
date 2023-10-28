@@ -16,6 +16,7 @@ $post = \potibm\Bluesky\Feed\Post::create('✨ example mentioning @atproto.com t
 
 $postService = new \potibm\Bluesky\BlueskyPostService($api);
 $post = $postService->addFacetsFromMentionsAndLinks($post);
+$post = $postService->addImage($post, 'image.jpg', 'alt text');
 
 $response = $api->createRecord($post);
 ```

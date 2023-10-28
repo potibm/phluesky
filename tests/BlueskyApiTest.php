@@ -9,6 +9,7 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\TestCase;
 use potibm\Bluesky\BlueskyApi;
+use potibm\Bluesky\Embed\Images;
 use potibm\Bluesky\Exception\HttpRequestException;
 use potibm\Bluesky\Exception\HttpStatusCodeException;
 use potibm\Bluesky\Exception\InvalidPayloadException;
@@ -17,6 +18,8 @@ use potibm\Bluesky\HttpComponentsManager;
 use potibm\Bluesky\Response\CreateRecordResponse;
 use potibm\Bluesky\Response\CreateSessionResponse;
 use potibm\Bluesky\Response\ResponseTrait;
+use potibm\Bluesky\Response\UploadBlobResponse;
+use potibm\Bluesky\Test\Response\UploadBlobResponseTest;
 use Psr\Http\Client\ClientExceptionInterface;
 use Psr\Http\Client\ClientInterface;
 use Psr\Http\Message\ResponseInterface;
@@ -28,6 +31,8 @@ use Psr\Http\Message\UriFactoryInterface;
 #[UsesClass(CreateRecordResponse::class)]
 #[UsesClass(CreateSessionResponse::class)]
 #[UsesClass(ResponseTrait::class)]
+#[UsesClass(Images::class)]
+#[UsesClass(UploadBlobResponse::class)]
 class BlueskyApiTest extends TestCase
 {
     public function testGetDidForHandle(): void
@@ -101,7 +106,38 @@ class BlueskyApiTest extends TestCase
         $this->assertEquals('cid:1234567890', $response->getCid());
     }
 
-    public function generateHttpComponentsManager(int $statusCode, bool $jsonEncode, mixed ...$bodies): HttpComponentsManager
+    public function testUploadBlob(): void
+    {
+        $httpComponent = $this->generateHttpComponentsManager(200, true, [
+            'accessJwt' => 'accessJwt',
+            'did' => 'did:bluesky:1234567890',
+        ], [
+            'blob' => (array) UploadBlobResponseTest::generateBlobResponse(),
+        ]);
+        $api = new BlueskyApi('identifier', 'password', $httpComponent);
+
+        $response = $api->uploadBlob('imagecontent', 'image/jpeg');
+        $this->assertInstanceOf(UploadBlobResponse::class, $response);
+        $this->assertEquals('image/jpeg', $response->getMimeType());
+        $this->assertEquals(123, $response->getSize());
+        $this->assertEquals('https://example.com', $response->getRefLink());
+    }
+
+    public function testUploadBloWithMissingBlobPropertyInResponse(): void
+    {
+        $httpComponent = $this->generateHttpComponentsManager(200, true, [
+            'accessJwt' => 'accessJwt',
+            'did' => 'did:bluesky:1234567890',
+        ], [
+            'key' => 'value',
+        ]);
+        $api = new BlueskyApi('identifier', 'password', $httpComponent);
+
+        $this->expectException(InvalidPayloadException::class);
+        $api->uploadBlob('imagecontent', 'image/jpeg');
+    }
+
+    private function generateHttpComponentsManager(int $statusCode, bool $jsonEncode, mixed ...$bodies): HttpComponentsManager
     {
         $psr17Factory = new Psr17Factory();
 
