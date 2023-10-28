@@ -4,7 +4,11 @@ declare(strict_types=1);
 
 namespace potibm\Bluesky;
 
+use potibm\Bluesky\Embed\External;
+use potibm\Bluesky\Embed\Images;
+use potibm\Bluesky\Exception\FileNotFoundException;
 use potibm\Bluesky\Feed\Post;
+use potibm\Bluesky\Response\UploadBlobResponse;
 use potibm\Bluesky\Richtext\FacetLink;
 use potibm\Bluesky\Richtext\FacetMention;
 
@@ -79,18 +83,44 @@ class BlueskyPostService
 
     public function addImage(Post $post, string $imageFile, string $altText): Post
     {
-        if (! file_exists($imageFile)) {
-            throw new \Exception('File not found: ' . $imageFile);
+        $blob = $this->createBlobFromFilename($imageFile);
+
+        $resultPost = clone $post;
+        $embed = $resultPost->getEmbed();
+        if (! $embed instanceof Images) {
+            $embed = new Images();
+            $resultPost->setEmbed($embed);
+        }
+        $embed->addImage($blob, $altText);
+
+        return $resultPost;
+    }
+
+    public function addWebsiteCard(Post $post, string $uri, string $title, string $description, ?string $imageFile = null): Post
+    {
+        $resultPost = clone $post;
+
+        if ($imageFile) {
+            $blob = $this->createBlobFromFilename($imageFile);
+        } else {
+            $blob = null;
         }
 
-        $blob = $this->blueskyClient->uploadBlob(
+        $card = External::create($uri, $title, $description, $blob);
+        $resultPost->setEmbed($card);
+
+        return $resultPost;
+    }
+
+    private function createBlobFromFilename(string $imageFile): UploadBlobResponse
+    {
+        if (! file_exists($imageFile)) {
+            throw new FileNotFoundException('File not found: ' . $imageFile);
+        }
+
+        return $this->blueskyClient->uploadBlob(
             file_get_contents($imageFile),
             mime_content_type($imageFile)
         );
-
-        $resultPost = clone $post;
-        $resultPost->getImages()->addImage($blob, $altText);
-
-        return $resultPost;
     }
 }

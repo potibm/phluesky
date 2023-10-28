@@ -9,7 +9,9 @@ use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\TestCase;
 use potibm\Bluesky\BlueskyApi;
 use potibm\Bluesky\BlueskyPostService;
+use potibm\Bluesky\Embed\External;
 use potibm\Bluesky\Embed\Images;
+use potibm\Bluesky\Exception\FileNotFoundException;
 use potibm\Bluesky\Feed\Post;
 use potibm\Bluesky\Richtext\AbstractFacet;
 use potibm\Bluesky\Richtext\FacetLink;
@@ -21,6 +23,7 @@ use potibm\Bluesky\Richtext\FacetMention;
 #[UsesClass(FacetLink::class)]
 #[UsesClass(FacetMention::class)]
 #[UsesClass(Images::class)]
+#[UsesClass(External::class)]
 class BlueskyPostServiceTest extends TestCase
 {
     private const SAMPLE = '✨ example mentioning @atproto.com ' .
@@ -77,14 +80,43 @@ class BlueskyPostServiceTest extends TestCase
         /** @psalm-suppress PossiblyNullArgument, PossiblyNullReference */
         $resultPost = $this->postService->addImage($this->post, __FILE__, 'an alt text');
 
-        $this->assertCount(1, $resultPost->getImages());
+        $embed = $resultPost->getEmbed();
+        $this->assertInstanceOf(Images::class, $embed);
+        $this->assertCount(1, $embed);
     }
 
     public function testAddImgeWithMissingImage(): void
     {
-        $this->expectException(\Exception::class);
+        $this->expectException(FileNotFoundException::class);
         /** @psalm-suppress PossiblyNullArgument, PossiblyNullReference */
         $this->postService->addImage($this->post, __DIR__ . '/missingfile.png', 'an alt text');
+    }
+
+    public function testAddExternal(): void
+    {
+        /** @psalm-suppress PossiblyNullArgument, PossiblyNullReference */
+        $resultPost = $this->postService->addWebsiteCard($this->post, 'https://example.com', 'title', 'desc', __FILE__);
+
+        $embed = $resultPost->getEmbed();
+        $this->assertInstanceOf(External::class, $embed);
+        $this->assertNotNull($embed->getThumb());
+    }
+
+    public function testAddExternalWithoutThumb(): void
+    {
+        /** @psalm-suppress PossiblyNullArgument, PossiblyNullReference */
+        $resultPost = $this->postService->addWebsiteCard($this->post, 'https://example.com', 'title', 'desc');
+
+        $embed = $resultPost->getEmbed();
+        $this->assertInstanceOf(External::class, $embed);
+        $this->assertNull($embed->getThumb());
+    }
+
+    public function testAddExternalWithMissingFile(): void
+    {
+        $this->expectException(FileNotFoundException::class);
+        /** @psalm-suppress PossiblyNullArgument, PossiblyNullReference */
+        $this->postService->addWebsiteCard($this->post, 'https://example.com', 'title', 'desc', __DIR__ . '/missingfile.png');
     }
 
     public function setUp(): void

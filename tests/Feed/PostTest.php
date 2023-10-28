@@ -97,12 +97,16 @@ class PostTest extends TestCase
     public function testAddedImage(): void
     {
         $post = Post::create('Hello world');
-        $post->getImages()->addImage(
+        $images = new Images();
+        $post->setEmbed($images);
+        $images->addImage(
             new UploadBlobResponse(UploadBlobResponseTest::generateBlobResponse()),
             'an alt text'
         );
 
-        $this->assertCount(1, $post->getImages());
+        $image = $post->getEmbed();
+        $this->assertInstanceOf(Images::class, $image);
+        $this->assertCount(1, $image);
 
         $json = $post->jsonSerialize();
         $this->assertArrayHasKey('embed', $json);

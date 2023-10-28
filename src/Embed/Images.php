@@ -6,7 +6,7 @@ namespace potibm\Bluesky\Embed;
 
 use potibm\Bluesky\Response\UploadBlobResponse;
 
-class Images implements \JsonSerializable, \Countable
+class Images implements Embeddable, \Countable
 {
     private array $images = [];
 
@@ -34,5 +34,10 @@ class Images implements \JsonSerializable, \Countable
             '$type' => 'app.bsky.embed.images',
             "images" => $this->images,
         ];
+    }
+
+    public static function create(): self
+    {
+        return new self();
     }
 }
