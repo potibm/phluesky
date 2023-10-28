@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace potibm\Bluesky\Feed;
 
 use JsonSerializable;
-use potibm\Bluesky\Embed\Images;
+use potibm\Bluesky\Embed\Embeddable;
 use potibm\Bluesky\Richtext\AbstractFacet;
 
 class Post implements JsonSerializable
@@ -20,12 +20,11 @@ class Post implements JsonSerializable
 
     private array $langs = [];
 
-    private Images $images;
+    private ?Embeddable $embed = null;
 
     public function __construct()
     {
         $this->createdAt = new \DateTimeImmutable();
-        $this->images = new Images();
     }
 
     public function getText(): string
@@ -73,9 +72,14 @@ class Post implements JsonSerializable
         $this->langs = $langs;
     }
 
-    public function getImages(): Images
+    public function getEmbed(): ?Embeddable
     {
-        return $this->images;
+        return $this->embed;
+    }
+
+    public function setEmbed(Embeddable $embed): void
+    {
+        $this->embed = $embed;
     }
 
     public function jsonSerialize(): mixed
@@ -94,8 +98,8 @@ class Post implements JsonSerializable
                 $post['facets'][] = $facet->jsonSerialize();
             }
         }
-        if ($this->images->count()) {
-            $post['embed'] = $this->images->jsonSerialize();
+        if ($this->embed) {
+            $post['embed'] = $this->embed->jsonSerialize();
         }
         return $post;
     }

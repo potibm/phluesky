@@ -9,16 +9,46 @@ An small PHP library for Bluesky social using the AT Protocol.
 
 ## Usage
 
+### Setup and posting a simple message
+
 ```
 $api = new BlueskyApi('nick.bsky.social', 'abcd-efgh-ijkl-mnop');
+$postService = new \potibm\Bluesky\BlueskyPostService($api);
 
 $post = \potibm\Bluesky\Feed\Post::create('✨ example mentioning @atproto.com to share the URL 👨‍❤️‍👨 https://en.wikipedia.org/wiki/CBOR.');
 
-$postService = new \potibm\Bluesky\BlueskyPostService($api);
-$post = $postService->addFacetsFromMentionsAndLinks($post);
-$post = $postService->addImage($post, 'image.jpg', 'alt text');
-
 $response = $api->createRecord($post);
+```
+
+### Adding mentions and links from post text
+
+```
+$post = \potibm\Bluesky\Feed\Post::create('✨ example mentioning @atproto.com to share the URL 👨‍❤️‍👨 https://en.wikipedia.org/wiki/CBOR.');
+$post = $postService->addFacetsFromMentionsAndLinks($post);
+```
+
+### Adding images
+
+```
+$post = \potibm\Bluesky\Feed\Post::create('✨ example mentioning @atproto.com to share the URL 👨‍❤️‍👨 https://en.wikipedia.org/wiki/CBOR.');
+$post = $postService->addImage(
+    $post, 
+    'image.jpg', 
+    'alt text'
+);
+```
+
+### Adding website card embeds
+
+```
+$post = \potibm\Bluesky\Feed\Post::create('✨ example mentioning @atproto.com to share the URL 👨‍❤️‍👨 https://en.wikipedia.org/wiki/CBOR.');
+$post = $postService->addWebsiteCard(
+    $post, 
+    'https://example.com', 
+    'Example website', 
+    'Example website description',
+    'optionalimage.jpg'
+);
 ```
 
 ## License

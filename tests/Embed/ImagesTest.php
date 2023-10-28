@@ -17,7 +17,7 @@ class ImagesTest extends TestCase
 {
     public function testAndAndCount(): void
     {
-        $images = new Images();
+        $images = Images::create();
         $this->assertEquals(0, $images->count());
 
         $images->addImage($this->createBlob());
