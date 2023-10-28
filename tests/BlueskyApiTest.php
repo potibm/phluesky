@@ -35,7 +35,7 @@ use Psr\Http\Message\UriFactoryInterface;
 #[UsesClass(UploadBlobResponse::class)]
 class BlueskyApiTest extends TestCase
 {
-    public function testGetDidForHandle()
+    public function testGetDidForHandle(): void
     {
         $httpComponent = $this->generateHttpComponentsManager(200, true, [
             'did' => 'did:bluesky:1234567890',
@@ -45,18 +45,19 @@ class BlueskyApiTest extends TestCase
         $this->assertEquals('did:bluesky:1234567890', $api->getDidForHandle('handle'));
     }
 
-    public function testGetDidForHandleExceptionOnRequest()
+    public function testGetDidForHandleExceptionOnRequest(): void
     {
         $this->expectException(HttpRequestException::class);
 
         $httpComponent = $this->generateHttpComponentsManager(200, true, []);
         $exception = $this->createMock(ClientExceptionInterface::class);
+        /** @psalm-suppress UndefinedInterfaceMethod */
         $httpComponent->httpClient->method("sendRequest")->willThrowException($exception);
         $api = new BlueskyApi('identifier', 'password', $httpComponent);
         $api->getDidForHandle('handle');
     }
 
-    public function testGetDidForHandle404()
+    public function testGetDidForHandle404(): void
     {
         $this->expectException(HttpStatusCodeException::class);
 
@@ -66,7 +67,7 @@ class BlueskyApiTest extends TestCase
         $api->getDidForHandle('handle');
     }
 
-    public function testGetDidForHandleInvalidPayload()
+    public function testGetDidForHandleInvalidPayload(): void
     {
         $this->expectException(InvalidPayloadException::class);
 
@@ -75,7 +76,7 @@ class BlueskyApiTest extends TestCase
         $api->getDidForHandle('handle');
     }
 
-    public function testGetDidForHandleMissingValue()
+    public function testGetDidForHandleMissingValue(): void
     {
         $this->expectException(InvalidPayloadException::class);
 
@@ -86,7 +87,7 @@ class BlueskyApiTest extends TestCase
         $api->getDidForHandle('handle');
     }
 
-    public function testCreateRecord()
+    public function testCreateRecord(): void
     {
         $post = Post::create('Test for a post');
 

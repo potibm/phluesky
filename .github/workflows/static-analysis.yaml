@@ -21,5 +21,8 @@ jobs:
       - name: Install dependencies
         run: composer install
 
-      - name: Run script
+      - name: Run codestyle
         run: composer run codestyle
+
+      - name: Run psalm
+        run: composer run psalm

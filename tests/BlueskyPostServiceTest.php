@@ -30,8 +30,9 @@ class BlueskyPostServiceTest extends TestCase
 
     private ?Post $post = null;
 
-    public function testMentionFacet()
+    public function testMentionFacet(): void
     {
+        /** @psalm-suppress PossiblyNullArgument, PossiblyNullReference */
         $resultPost = $this->postService->addFacetsFromMentions($this->post);
 
         $this->assertCount(1, $resultPost->getFacets());
@@ -45,8 +46,9 @@ class BlueskyPostServiceTest extends TestCase
         $this->assertEquals(35, $firstFacet->getEnd());
     }
 
-    public function testLinkFacet()
+    public function testLinkFacet(): void
     {
+        /** @psalm-suppress PossiblyNullArgument, PossiblyNullReference */
         $resultPost = $this->postService->addFacetsFromLinks($this->post);
 
         $this->assertCount(1, $resultPost->getFacets());
@@ -60,8 +62,9 @@ class BlueskyPostServiceTest extends TestCase
         $this->assertEquals(108, $firstFacet->getEnd());
     }
 
-    public function testLinkAndMentionFacets()
+    public function testLinkAndMentionFacets(): void
     {
+        /** @psalm-suppress PossiblyNullArgument, PossiblyNullReference */
         $resultPost = $this->postService->addFacetsFromMentionsAndLinks($this->post);
 
         $this->assertCount(2, $resultPost->getFacets());

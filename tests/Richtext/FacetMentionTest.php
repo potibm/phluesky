@@ -13,7 +13,7 @@ use potibm\Bluesky\Richtext\FacetMention;
 #[CoversClass(AbstractFacet::class)]
 class FacetMentionTest extends TestCase
 {
-    public function testCreate()
+    public function testCreate(): void
     {
         $link = FacetMention::create('mydid', 5, 16);
 
@@ -42,7 +42,7 @@ class FacetMentionTest extends TestCase
         );
     }
 
-    public function testModifyUri()
+    public function testModifyUri(): void
     {
         $link = new FacetMention();
         $link->setDid('mynewdid');

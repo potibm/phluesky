@@ -11,7 +11,7 @@ use potibm\Bluesky\Response\CreateSessionResponse;
 #[CoversClass(CreateSessionResponse::class)]
 class CreateSessionResponseTest extends TestCase
 {
-    public function testCreateValidObject()
+    public function testCreateValidObject(): void
     {
         $sessionResponse = new \stdClass();
         $sessionResponse->did = 'mydid';
@@ -22,21 +22,21 @@ class CreateSessionResponseTest extends TestCase
         $this->assertEquals('anAccessJwt', $session->getAuthToken());
     }
 
-    public function testMissingDidValue()
+    public function testMissingDidValue(): void
     {
         $sessionResponse = new \stdClass();
         $sessionResponse->accessJwt = 'anAccessJwt';
 
         $this->expectException(\potibm\Bluesky\Exception\InvalidPayloadException::class);
-        $session = new CreateSessionResponse($sessionResponse);
+        new CreateSessionResponse($sessionResponse);
     }
 
-    public function testMissingAccessJwtValue()
+    public function testMissingAccessJwtValue(): void
     {
         $sessionResponse = new \stdClass();
         $sessionResponse->did = 'mydid';
 
         $this->expectException(\potibm\Bluesky\Exception\InvalidPayloadException::class);
-        $session = new CreateSessionResponse($sessionResponse);
+        new CreateSessionResponse($sessionResponse);
     }
 }
