@@ -11,7 +11,7 @@ use potibm\Bluesky\Response\UploadBlobResponse;
 #[CoversClass(UploadBlobResponse::class)]
 class UploadBlobResponseTest extends TestCase
 {
-    public function testCreateValidObject()
+    public function testCreateValidObject(): void
     {
         $blob = new UploadBlobResponse(self::generateBlobResponse());
         $this->assertEquals('image/jpeg', $blob->getMimeType());
@@ -19,17 +19,17 @@ class UploadBlobResponseTest extends TestCase
         $this->assertEquals('https://example.com', $blob->getRefLink());
     }
 
-    public function testMissingRefValue()
+    public function testMissingRefValue(): void
     {
         $response = new \stdClass();
         $response->mimeType = 'image/jpeg';
         $response->size = 123;
 
         $this->expectException(\potibm\Bluesky\Exception\InvalidPayloadException::class);
-        $blob = new UploadBlobResponse($response);
+        new UploadBlobResponse($response);
     }
 
-    public function testJsonSerialize()
+    public function testJsonSerialize(): void
     {
         $blob = new UploadBlobResponse(self::generateBlobResponse());
         $this->assertEquals([

@@ -94,7 +94,7 @@ class PostTest extends TestCase
         $this->assertCount(0, $post->getFacets());
     }
 
-    public function testAddedImage()
+    public function testAddedImage(): void
     {
         $post = Post::create('Hello world');
         $post->getImages()->addImage(

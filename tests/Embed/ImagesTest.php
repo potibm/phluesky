@@ -15,7 +15,7 @@ use potibm\Bluesky\Test\Response\UploadBlobResponseTest;
 #[UsesClass(UploadBlobResponse::class)]
 class ImagesTest extends TestCase
 {
-    public function testAndAndCount()
+    public function testAndAndCount(): void
     {
         $images = new Images();
         $this->assertEquals(0, $images->count());
@@ -30,7 +30,7 @@ class ImagesTest extends TestCase
         $this->assertEquals(0, $images->count());
     }
 
-    public function testJsonSerialize()
+    public function testJsonSerialize(): void
     {
         $images = new Images();
         $blob = $this->createBlob();

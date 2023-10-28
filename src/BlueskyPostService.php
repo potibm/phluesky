@@ -89,8 +89,8 @@ class BlueskyPostService
         );
 
         $resultPost = clone $post;
-        $post->getImages()->addImage($blob);
+        $resultPost->getImages()->addImage($blob, $altText);
 
-        return $post;
+        return $resultPost;
     }
 }

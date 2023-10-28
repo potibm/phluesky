@@ -72,17 +72,19 @@ class BlueskyPostServiceTest extends TestCase
         $this->assertInstanceOf(FacetLink::class, $resultPost->getFacets()[1]);
     }
 
-    public function testAddImge()
+    public function testAddImage(): void
     {
+        /** @psalm-suppress PossiblyNullArgument, PossiblyNullReference */
         $resultPost = $this->postService->addImage($this->post, __FILE__, 'an alt text');
 
         $this->assertCount(1, $resultPost->getImages());
     }
 
-    public function testAddImgeWithMissingImage()
+    public function testAddImgeWithMissingImage(): void
     {
         $this->expectException(\Exception::class);
-        $resultPost = $this->postService->addImage($this->post, __DIR__ . '/missingfile.png', 'an alt text');
+        /** @psalm-suppress PossiblyNullArgument, PossiblyNullReference */
+        $this->postService->addImage($this->post, __DIR__ . '/missingfile.png', 'an alt text');
     }
 
     public function setUp(): void

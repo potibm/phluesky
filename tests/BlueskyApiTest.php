@@ -106,7 +106,7 @@ class BlueskyApiTest extends TestCase
         $this->assertEquals('cid:1234567890', $response->getCid());
     }
 
-    public function testUploadBlob()
+    public function testUploadBlob(): void
     {
         $httpComponent = $this->generateHttpComponentsManager(200, true, [
             'accessJwt' => 'accessJwt',
@@ -123,7 +123,7 @@ class BlueskyApiTest extends TestCase
         $this->assertEquals('https://example.com', $response->getRefLink());
     }
 
-    public function testUploadBloWithMissingBlobPropertyInResponse()
+    public function testUploadBloWithMissingBlobPropertyInResponse(): void
     {
         $httpComponent = $this->generateHttpComponentsManager(200, true, [
             'accessJwt' => 'accessJwt',
@@ -137,7 +137,7 @@ class BlueskyApiTest extends TestCase
         $api->uploadBlob('imagecontent', 'image/jpeg');
     }
 
-    private function generateHttpComponentsManager(int $statusCode, $jsonEncode, mixed ...$bodies): HttpComponentsManager
+    private function generateHttpComponentsManager(int $statusCode, bool $jsonEncode, mixed ...$bodies): HttpComponentsManager
     {
         $psr17Factory = new Psr17Factory();
 
