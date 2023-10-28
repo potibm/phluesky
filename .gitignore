@@ -7,4 +7,4 @@ coverage.xml
 .DS_Store
 /.phpunit.cache
 .idea
-test.php
+test.*

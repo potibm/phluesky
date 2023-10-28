@@ -10,6 +10,7 @@ $postService = new \potibm\Bluesky\BlueskyPostService($api);
 
 $post = \potibm\Bluesky\Feed\Post::create('✨ example mentioning @atproto.com to share the URL 👨‍❤️‍👨 https://en.wikipedia.org/wiki/CBOR.');
 $post = $postService->addFacetsFromMentionsAndLinks($post);
+$post = $postService->addImage($post, 'image.jpg', 'alt text');
 
 $response = $api->createRecord($post);
 ```
