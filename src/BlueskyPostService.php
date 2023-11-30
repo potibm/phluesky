@@ -6,6 +6,7 @@ namespace potibm\Bluesky;
 
 use potibm\Bluesky\Embed\External;
 use potibm\Bluesky\Embed\Images;
+use potibm\Bluesky\Embed\Record;
 use potibm\Bluesky\Exception\FileNotFoundException;
 use potibm\Bluesky\Feed\Post;
 use potibm\Bluesky\Response\UploadBlobResponse;
@@ -15,10 +16,10 @@ use potibm\Bluesky\Richtext\FacetMention;
 class BlueskyPostService
 {
     private const REGEXP_HANDLE = '([a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)' .
-        '+[a-zA-Z]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?';
+    '+[a-zA-Z]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?';
 
     private const REGEXP_URL = 'https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~\#=]{1,256}\.' .
-        '[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~\#?&//=]*[-a-zA-Z0-9@%_\+~\#//=])?';
+    '[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~\#?&//=]*[-a-zA-Z0-9@%_\+~\#//=])?';
 
     public function __construct(
         private BlueskyApi $blueskyClient
@@ -77,6 +78,34 @@ class BlueskyPostService
 
             $resultPost->addFacet($facet);
         }
+
+        return $resultPost;
+    }
+
+    public function addQuote(Post $post, string $quotedRecordUri): Post
+    {
+        $resultPost = clone $post;
+
+        $quotedRecord = $this->blueskyClient->getRecord(new BlueskyUri($quotedRecordUri));
+
+        $resultPost->setEmbed(Record::createFromRecordResponse($quotedRecord));
+
+        return $resultPost;
+    }
+
+    public function addReply(Post $post, string $replyParentUri): Post
+    {
+        $resultPost = clone $post;
+
+        $replyParentRecord = $this->blueskyClient->getRecord(new BlueskyUri($replyParentUri));
+        $replyRootRecord = $replyParentRecord;
+
+        $replyRootRecordValue = $replyParentRecord->getReplyRoot();
+        if ($replyRootRecordValue) {
+            $replyRootRecord = $this->blueskyClient->getRecord($replyRootRecordValue->getUri());
+        }
+
+        $resultPost->setReply($replyRootRecord, $replyParentRecord);
 
         return $resultPost;
     }

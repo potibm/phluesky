@@ -6,6 +6,7 @@ namespace potibm\Bluesky\Feed;
 
 use JsonSerializable;
 use potibm\Bluesky\Embed\Embeddable;
+use potibm\Bluesky\Response\RecordResponse;
 use potibm\Bluesky\Richtext\AbstractFacet;
 
 class Post implements JsonSerializable
@@ -19,6 +20,8 @@ class Post implements JsonSerializable
     private array $facets = [];
 
     private array $langs = [];
+
+    private ?array $reply = null;
 
     private ?Embeddable $embed = null;
 
@@ -82,6 +85,19 @@ class Post implements JsonSerializable
         $this->embed = $embed;
     }
 
+    public function setReply(RecordResponse $root, RecordResponse $parent): void
+    {
+        $this->reply = [
+            'root' => $root,
+            'parent' => $parent,
+        ];
+    }
+
+    public function removeReply(): void
+    {
+        $this->reply = null;
+    }
+
     public function jsonSerialize(): mixed
     {
         $post = [
@@ -101,6 +117,13 @@ class Post implements JsonSerializable
         if ($this->embed) {
             $post['embed'] = $this->embed->jsonSerialize();
         }
+        if ($this->reply) {
+            $post['reply'] = [
+                'root' => $this->convertRecordReponseToArray($this->reply['root']),
+                'parent' => $this->convertRecordReponseToArray($this->reply['parent']),
+            ];
+        }
+
         return $post;
     }
 
@@ -111,5 +134,13 @@ class Post implements JsonSerializable
         $post->setLangs([$lang]);
 
         return $post;
+    }
+
+    private function convertRecordReponseToArray(RecordResponse $response): array
+    {
+        return [
+            'uri' => (string) $response->getUri(),
+            'cid' => $response->getCid(),
+        ];
     }
 }

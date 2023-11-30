@@ -8,8 +8,8 @@ use potibm\Bluesky\Exception\HttpRequestException;
 use potibm\Bluesky\Exception\HttpStatusCodeException;
 use potibm\Bluesky\Exception\InvalidPayloadException;
 use potibm\Bluesky\Feed\Post;
-use potibm\Bluesky\Response\CreateRecordResponse;
 use potibm\Bluesky\Response\CreateSessionResponse;
+use potibm\Bluesky\Response\RecordResponse;
 use potibm\Bluesky\Response\UploadBlobResponse;
 use Psr\Http\Client\ClientExceptionInterface;
 
@@ -48,9 +48,9 @@ class BlueskyApi implements BlueskyApiInterface
         return $jsonBody->did;
     }
 
-    public function createRecord(Post $post): CreateRecordResponse
+    public function createRecord(Post $post): RecordResponse
     {
-        return new CreateRecordResponse($this->performXrpcCall(
+        return new RecordResponse($this->performXrpcCall(
             'POST',
             'com.atproto.repo.createRecord',
             [],
@@ -59,6 +59,22 @@ class BlueskyApi implements BlueskyApiInterface
                 'collection' => "app.bsky.feed.post",
                 "record" => $post->jsonSerialize(),
             ]
+        ));
+    }
+
+    public function getRecord(BlueskyUri $uri): RecordResponse
+    {
+        return new RecordResponse($this->performXrpcCall(
+            'GET',
+            'com.atproto.repo.getRecord',
+            [
+                'repo' => $uri->getDID(),
+                'collection' => $uri->getNSID(),
+                'rkey' => $uri->getRecord(),
+            ],
+            [],
+            [],
+            false
         ));
     }
 

@@ -29,8 +29,10 @@ $post = $postService->addFacetsFromMentionsAndLinks($post);
 
 ### Adding images
 
+[https://atproto.com/blog/create-post#images-embeds](https://atproto.com/blog/create-post#images-embeds)
+
 ```
-$post = \potibm\Bluesky\Feed\Post::create('✨ example mentioning @atproto.com to share the URL 👨‍❤️‍👨 https://en.wikipedia.org/wiki/CBOR.');
+$post = \potibm\Bluesky\Feed\Post::create('example post with image attached');
 $post = $postService->addImage(
     $post, 
     'image.jpg', 
@@ -40,14 +42,40 @@ $post = $postService->addImage(
 
 ### Adding website card embeds
 
+[https://atproto.com/blog/create-post#website-card-embeds](https://atproto.com/blog/create-post#website-card-embeds)
+
 ```
-$post = \potibm\Bluesky\Feed\Post::create('✨ example mentioning @atproto.com to share the URL 👨‍❤️‍👨 https://en.wikipedia.org/wiki/CBOR.');
+$post = \potibm\Bluesky\Feed\Post::create('post which embeds an external URL as a card');
 $post = $postService->addWebsiteCard(
     $post, 
     'https://example.com', 
     'Example website', 
     'Example website description',
     'optionalimage.jpg'
+);
+```
+
+### Reply to a post
+
+[https://atproto.com/blog/create-post#replies](https://atproto.com/blog/create-post#replies)
+
+```
+$post = \potibm\Bluesky\Feed\Post::create('example of a reply');
+$post = $postService->addReply(
+    $post, 
+    'at://did:plc:u5cwb2mwiv2bfq53cjufe6yn/app.bsky.feed.post/3k43tv4rft22g'
+);
+```
+
+### Quote a post
+
+[https://atproto.com/blog/create-post#quote-posts](https://atproto.com/blog/create-post#quote-posts)
+
+```
+$post = \potibm\Bluesky\Feed\Post::create('example of a quote-post');
+$post = $postService->addQuote(
+    $post, 
+    'at://did:plc:u5cwb2mwiv2bfq53cjufe6yn/app.bsky.feed.post/3k44deefqdk2g'
 );
 ```
 
