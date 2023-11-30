@@ -7,13 +7,16 @@ namespace potibm\Bluesky\Test\Feed;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\TestCase;
+use potibm\Bluesky\BlueskyUri;
 use potibm\Bluesky\Embed\Images;
 use potibm\Bluesky\Feed\Post;
+use potibm\Bluesky\Response\RecordResponse;
 use potibm\Bluesky\Response\ResponseTrait;
 use potibm\Bluesky\Response\UploadBlobResponse;
 use potibm\Bluesky\Richtext\AbstractFacet;
 use potibm\Bluesky\Richtext\FacetLink;
 use potibm\Bluesky\Richtext\FacetMention;
+use potibm\Bluesky\Test\Response\RecordResponseTest;
 use potibm\Bluesky\Test\Response\UploadBlobResponseTest;
 
 #[CoversClass(Post::class)]
@@ -23,6 +26,8 @@ use potibm\Bluesky\Test\Response\UploadBlobResponseTest;
 #[UsesClass(Images::class)]
 #[UsesClass(ResponseTrait::class)]
 #[UsesClass(UploadBlobResponse::class)]
+#[UsesClass(BlueskyUri::class)]
+#[UsesClass(RecordResponse::class)]
 class PostTest extends TestCase
 {
     public function testMinimalToJson(): void
@@ -114,5 +119,32 @@ class PostTest extends TestCase
         $this->assertEquals('app.bsky.embed.images', $json['embed']['$type']);
         $this->assertArrayHasKey('images', $json['embed']);
         $this->assertCount(1, $json['embed']['images']);
+    }
+
+    public function testSetReply(): void
+    {
+        $post = Post::create('Hello world');
+        $post->setReply(
+            new RecordResponse(RecordResponseTest::generateBlobResponse()),
+            new RecordResponse(RecordResponseTest::generateBlobResponse()),
+        );
+
+        $json = $post->jsonSerialize();
+        $this->assertArrayHasKey('reply', $json);
+        $this->assertArrayHasKey('root', $json['reply']);
+        $this->assertArrayHasKey('parent', $json['reply']);
+    }
+
+    public function testRemoveReply(): void
+    {
+        $post = Post::create('Hello world');
+        $post->setReply(
+            new RecordResponse(RecordResponseTest::generateBlobResponse()),
+            new RecordResponse(RecordResponseTest::generateBlobResponse()),
+        );
+        $post->removeReply();
+
+        $json = $post->jsonSerialize();
+        $this->assertArrayNotHasKey('reply', $json);
     }
 }
