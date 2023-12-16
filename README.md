@@ -9,6 +9,18 @@ An small PHP library for Bluesky social using the AT Protocol.
 
 ## Usage
 
+## Install
+
+Installing using composer is suggested
+
+```
+composer require potibm/phluesky
+```
+
+You will need a PSR-7, PSR-17 and PSR-18 client or adapter from [this list](https://docs.php-http.org/en/latest/clients.html). For development [symfony/http-client](https://packagist.org/packages/symfony/http-client) and [nyholm/psr7](https://packagist.org/packages/nyholm/psr7) are used. 
+
+The HTTP service discovery will do the magic. In most cases no additional steps are required. 
+
 ### Setup and posting a simple message
 
 ```
