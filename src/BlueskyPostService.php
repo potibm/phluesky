@@ -91,7 +91,7 @@ class BlueskyPostService
         return $resultPost;
     }
 
-	public function addFacetsFromTags(Post $post)
+	public function addFacetsFromTags(Post $post): Post
 	{
 		$resultPost = clone $post;
 
