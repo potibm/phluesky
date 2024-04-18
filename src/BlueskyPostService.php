@@ -12,6 +12,7 @@ use potibm\Bluesky\Feed\Post;
 use potibm\Bluesky\Response\UploadBlobResponse;
 use potibm\Bluesky\Richtext\FacetLink;
 use potibm\Bluesky\Richtext\FacetMention;
+use potibm\Bluesky\Richtext\FacetTag;
 
 class BlueskyPostService
 {
@@ -35,6 +36,14 @@ class BlueskyPostService
 
         return $resultPost;
     }
+
+	public function addFacetsFromMentionsAndLinksAndTags(Post $post): Post
+	{
+		$resultPost = $this->addFacetsFromMentionsAndLinks($post);
+		$resultPost = $this->addFacetsFromTags($resultPost);
+
+		return $resultPost;
+	}
 
     public function addFacetsFromMentions(Post $post): Post
     {
@@ -81,6 +90,27 @@ class BlueskyPostService
 
         return $resultPost;
     }
+
+	public function addFacetsFromTags(Post $post)
+	{
+		$resultPost = clone $post;
+
+		preg_match_all('/(#\w+)/u', $post->getText(), $matches, PREG_OFFSET_CAPTURE);
+		foreach ($matches[0] as $match) {
+			$hashtag = $match[0];
+			$start = $match[1];
+
+			$facet = FacetTag::create(
+				str_replace('#', '', $hashtag),
+				$start,
+				$start + strlen($hashtag)
+			);
+
+			$resultPost->addFacet($facet);
+		}
+
+		return $resultPost;
+	}
 
     public function addQuote(Post $post, string $quotedRecordUri): Post
     {

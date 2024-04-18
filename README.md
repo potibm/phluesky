@@ -39,6 +39,13 @@ $post = \potibm\Bluesky\Feed\Post::create('✨ example mentioning @atproto.com t
 $post = $postService->addFacetsFromMentionsAndLinks($post);
 ```
 
+### Adding mentions and links and tags from post text
+
+```
+$post = \potibm\Bluesky\Feed\Post::create('✨ example mentioning @atproto.com to share the URL 👨‍❤️‍👨 https://en.wikipedia.org/wiki/CBOR. and #HashtagFun');
+$post = $postService->addFacetsFromMentionsAndLinksAndTags($post);
+```
+
 ### Adding images
 
 [https://atproto.com/blog/create-post#images-embeds](https://atproto.com/blog/create-post#images-embeds)

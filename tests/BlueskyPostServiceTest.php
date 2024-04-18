@@ -22,6 +22,7 @@ use potibm\Bluesky\Response\ResponseTrait;
 use potibm\Bluesky\Richtext\AbstractFacet;
 use potibm\Bluesky\Richtext\FacetLink;
 use potibm\Bluesky\Richtext\FacetMention;
+use potibm\Bluesky\Richtext\FacetTag;
 use potibm\Bluesky\Test\Response\RecordResponseTest;
 
 #[CoversClass(BlueskyPostService::class)]
@@ -38,7 +39,7 @@ use potibm\Bluesky\Test\Response\RecordResponseTest;
 class BlueskyPostServiceTest extends TestCase
 {
     private const SAMPLE = '✨ example mentioning @atproto.com ' .
-        'to share the URL 👨‍❤️‍👨 https://en.wikipedia.org/wiki/CBOR.';
+        'to share the URL 👨‍❤️‍👨 https://en.wikipedia.org/wiki/CBOR. and a #HashtagFun.';
 
     private BlueskyPostService $postService;
 
@@ -81,6 +82,22 @@ class BlueskyPostServiceTest extends TestCase
         $this->assertEquals(108, $firstFacet->getEnd());
     }
 
+	public function testTagFacet(): void
+	{
+		/** @psalm-suppress PossiblyNullArgument, PossiblyNullReference */
+		$resultPost = $this->postService->addFacetsFromTags($this->post);
+
+		$this->assertCount(1, $resultPost->getFacets());
+		$this->assertInstanceOf(FacetTag::class, $resultPost->getFacets()[0]);
+		/**
+		 * @var FacetTag $firstFacet
+		 */
+		$firstFacet = $resultPost->getFacets()[0];
+		$this->assertEquals('HashtagFun', $firstFacet->getTag());
+		$this->assertEquals(116, $firstFacet->getStart());
+		$this->assertEquals(127, $firstFacet->getEnd());
+	}
+
     public function testLinkAndMentionFacets(): void
     {
         /** @psalm-suppress PossiblyNullArgument, PossiblyNullReference */
@@ -90,6 +107,17 @@ class BlueskyPostServiceTest extends TestCase
         $this->assertInstanceOf(FacetMention::class, $resultPost->getFacets()[0]);
         $this->assertInstanceOf(FacetLink::class, $resultPost->getFacets()[1]);
     }
+
+	public function testLinkAndMentionAndTagFacets(): void
+	{
+		/** @psalm-suppress PossiblyNullArgument, PossiblyNullReference */
+		$resultPost = $this->postService->addFacetsFromMentionsAndLinksAndTags($this->post);
+
+		$this->assertCount(3, $resultPost->getFacets());
+		$this->assertInstanceOf(FacetMention::class, $resultPost->getFacets()[0]);
+		$this->assertInstanceOf(FacetLink::class, $resultPost->getFacets()[1]);
+		$this->assertInstanceOf(FacetTag::class, $resultPost->getFacets()[2]);
+	}
 
     public function testAddImage(): void
     {
