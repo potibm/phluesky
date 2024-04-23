@@ -30,6 +30,7 @@ use potibm\Bluesky\Test\Response\RecordResponseTest;
 #[UsesClass(AbstractFacet::class)]
 #[UsesClass(FacetLink::class)]
 #[UsesClass(FacetMention::class)]
+#[UsesClass(FacetTag::class)]
 #[UsesClass(Images::class)]
 #[UsesClass(External::class)]
 #[UsesClass(BlueskyUri::class)]
