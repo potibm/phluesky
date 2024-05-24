@@ -1,57 +1,57 @@
 {
-    "name": "potibm/phluesky",
-    "description": "An small PHP library for posting messages to the bluesky social network using the AT Protocol.",
-    "minimum-stability": "stable",
-    "license": "MIT",
-    "authors": [
-      {
-        "name": "Stefan Keßeler",
-        "email": "poti@kaoz.org"
-      }
-    ],
-    "keywords": [
-      "bluesky",
-      "at cprotocol",
-      "atproto"
-    ],
-    "require": {
-      "php": "^8.2",
-      "ext-fileinfo": "*",
-      "psr/http-client": "^1.0",
-      "psr/http-client-implementation": "*",
-      "psr/http-factory": "^1.0",
-      "psr/http-factory-implementation": "*",
-      "psr/http-message": "^2.0",
-      "psr/http-message-implementation": "*",
-        "php-http/discovery": "^1.19"
-    },
-    "require-dev": {
-      "phpunit/phpunit": "^10",
-      "nyholm/psr7": "^1.8",
-      "symfony/http-client": "^7.0",
-      "symplify/easy-coding-standard": "^12.0.8",
-        "vimeo/psalm": "^5.15",
-        "psalm/plugin-phpunit": "^0.18.4"
-    },
-    "autoload": {
-      "psr-4": {
-        "potibm\\Bluesky\\": "src/"
-      }
-    },
-    "autoload-dev": {
-      "psr-4": {
-        "potibm\\Bluesky\\Test\\": "tests/"
-      }
-    },
-    "scripts": {
-      "codestyle": "ecs",
-      "codestyle-fix": "ecs --fix",
-      "test": "phpunit tests",
-      "psalm": "psalm"
-    },
-    "config": {
-        "allow-plugins": {
-            "php-http/discovery": false
-        }
+  "name": "potibm/phluesky",
+  "description": "An small PHP library for posting messages to the bluesky social network using the AT Protocol.",
+  "minimum-stability": "stable",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Stefan Keßeler",
+      "email": "poti@kaoz.org"
     }
+  ],
+  "keywords": [
+    "bluesky",
+    "at cprotocol",
+    "atproto"
+  ],
+  "require": {
+    "php": "^8.2",
+    "ext-fileinfo": "*",
+    "psr/http-client": "^1.0",
+    "psr/http-client-implementation": "*",
+    "psr/http-factory": "^1.0",
+    "psr/http-factory-implementation": "*",
+    "psr/http-message": "^2.0",
+    "psr/http-message-implementation": "*",
+    "php-http/discovery": "^1.19"
+  },
+  "require-dev": {
+    "phpunit/phpunit": "^10",
+    "nyholm/psr7": "^1.8",
+    "symfony/http-client": "^7.0",
+    "symplify/easy-coding-standard": "^12.0.8",
+    "vimeo/psalm": "^5.15",
+    "psalm/plugin-phpunit": "^0.19.0"
+  },
+  "autoload": {
+    "psr-4": {
+      "potibm\\Bluesky\\": "src/"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "potibm\\Bluesky\\Test\\": "tests/"
+    }
+  },
+  "scripts": {
+    "codestyle": "ecs",
+    "codestyle-fix": "ecs --fix",
+    "test": "phpunit tests",
+    "psalm": "psalm"
+  },
+  "config": {
+    "allow-plugins": {
+      "php-http/discovery": false
+    }
+  }
 }
