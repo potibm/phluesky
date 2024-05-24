@@ -17,10 +17,10 @@ use potibm\Bluesky\Richtext\FacetTag;
 class BlueskyPostService
 {
     private const REGEXP_HANDLE = '([a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)' .
-    '+[a-zA-Z]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?';
+        '+[a-zA-Z]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?';
 
     private const REGEXP_URL = 'https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~\#=]{1,256}\.' .
-    '[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~\#?&//=]*[-a-zA-Z0-9@%_\+~\#//=])?';
+        '[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~\#?&//=]*[-a-zA-Z0-9@%_\+~\#//=])?';
 
     public function __construct(
         private BlueskyApi $blueskyClient
