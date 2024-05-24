@@ -13,6 +13,7 @@ jobs:
       matrix:
         php:
           - '8.2'
+          - '8.3'
         minimum_versions: [false]
         coverage: ['none']
         include:
