@@ -38,7 +38,7 @@ class RecordResponse
     public function getReplyRoot(): ?RecordResponse
     {
         $root = $this->value?->reply?->root;
-        if ($root) {
+        if ($root !== null) {
             return new RecordResponse($root);
         }
         return null;

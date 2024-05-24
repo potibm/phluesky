@@ -159,7 +159,7 @@ class BlueskyPostService
     {
         $resultPost = clone $post;
 
-        if ($imageFile) {
+        if ($imageFile !== null) {
             $blob = $this->createBlobFromFilename($imageFile);
         } else {
             $blob = null;

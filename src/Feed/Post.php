@@ -117,7 +117,7 @@ class Post implements JsonSerializable
         if ($this->embed) {
             $post['embed'] = $this->embed->jsonSerialize();
         }
-        if ($this->reply) {
+        if ($this->reply !== null) {
             $post['reply'] = [
                 'root' => $this->convertRecordReponseToArray($this->reply['root']),
                 'parent' => $this->convertRecordReponseToArray($this->reply['parent']),
