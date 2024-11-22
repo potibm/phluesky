@@ -24,7 +24,7 @@ The HTTP service discovery will do the magic. In most cases no additional steps 
 ### Setup and posting a simple message
 
 ```
-$api = new BlueskyApi('nick.bsky.social', 'abcd-efgh-ijkl-mnop');
+$api = new \potibm\Bluesky\BlueskyApi('nick.bsky.social', 'abcd-efgh-ijkl-mnop');
 $postService = new \potibm\Bluesky\BlueskyPostService($api);
 
 $post = \potibm\Bluesky\Feed\Post::create('✨ example mentioning @atproto.com to share the URL 👨‍❤️‍👨 https://en.wikipedia.org/wiki/CBOR.');
