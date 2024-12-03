@@ -13,7 +13,7 @@ An small PHP library for Bluesky social using the AT Protocol.
 
 Installing using composer is suggested
 
-```
+```bash
 composer require potibm/phluesky
 ```
 
@@ -23,7 +23,7 @@ The HTTP service discovery will do the magic. In most cases no additional steps 
 
 ### Setup and posting a simple message
 
-```
+```php
 $api = new \potibm\Bluesky\BlueskyApi('nick.bsky.social', 'abcd-efgh-ijkl-mnop');
 $postService = new \potibm\Bluesky\BlueskyPostService($api);
 
@@ -34,14 +34,14 @@ $response = $api->createRecord($post);
 
 ### Adding mentions and links from post text
 
-```
+```php
 $post = \potibm\Bluesky\Feed\Post::create('✨ example mentioning @atproto.com to share the URL 👨‍❤️‍👨 https://en.wikipedia.org/wiki/CBOR.');
 $post = $postService->addFacetsFromMentionsAndLinks($post);
 ```
 
 ### Adding mentions and links and tags from post text
 
-```
+```php
 $post = \potibm\Bluesky\Feed\Post::create('✨ example mentioning @atproto.com to share the URL 👨‍❤️‍👨 https://en.wikipedia.org/wiki/CBOR. and #HashtagFun');
 $post = $postService->addFacetsFromMentionsAndLinksAndTags($post);
 ```
@@ -50,7 +50,7 @@ $post = $postService->addFacetsFromMentionsAndLinksAndTags($post);
 
 [https://atproto.com/blog/create-post#images-embeds](https://atproto.com/blog/create-post#images-embeds)
 
-```
+```php
 $post = \potibm\Bluesky\Feed\Post::create('example post with image attached');
 $post = $postService->addImage(
     $post, 
@@ -63,7 +63,7 @@ $post = $postService->addImage(
 
 [https://atproto.com/blog/create-post#website-card-embeds](https://atproto.com/blog/create-post#website-card-embeds)
 
-```
+```php
 $post = \potibm\Bluesky\Feed\Post::create('post which embeds an external URL as a card');
 $post = $postService->addWebsiteCard(
     $post, 
@@ -78,7 +78,7 @@ $post = $postService->addWebsiteCard(
 
 [https://atproto.com/blog/create-post#replies](https://atproto.com/blog/create-post#replies)
 
-```
+```php
 $post = \potibm\Bluesky\Feed\Post::create('example of a reply');
 $post = $postService->addReply(
     $post, 
@@ -90,7 +90,7 @@ $post = $postService->addReply(
 
 [https://atproto.com/blog/create-post#quote-posts](https://atproto.com/blog/create-post#quote-posts)
 
-```
+```php
 $post = \potibm\Bluesky\Feed\Post::create('example of a quote-post');
 $post = $postService->addQuote(
     $post, 
@@ -105,7 +105,7 @@ While performing requests using the API, exceptions may be thrown.
 The exceptions are of the base type `potibm\Bluesky\Exception\Exception`.
 The exception message will contain details from the API.
 
-```
+```php
 try {
     $response = $api->createRecord($post);
 } catch (\potibm\Bluesky\Exception\HttpRequestException $e) {
