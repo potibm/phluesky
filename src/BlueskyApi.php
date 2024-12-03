@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace potibm\Bluesky;
 
+use potibm\Bluesky\Exception\AuthenticationErrorException;
 use potibm\Bluesky\Exception\HttpRequestException;
 use potibm\Bluesky\Exception\HttpStatusCodeException;
 use potibm\Bluesky\Exception\InvalidPayloadException;
@@ -166,7 +167,9 @@ class BlueskyApi implements BlueskyApiInterface
             throw new HttpRequestException('Failed to send the request: ' . $e->getMessage());
         }
 
-        if ($response->getStatusCode() != 200) {
+        if ($response->getStatusCode() === 401) {
+            throw new AuthenticationErrorException('Authentication failed: ' . (string) $response->getBody(), 401);
+        } elseif ($response->getStatusCode() != 200) {
             throw new HttpStatusCodeException('Received an HTTP error (' . $response->getStatusCode() . '): ' . (string) $response->getBody(), $response->getStatusCode());
         }
 

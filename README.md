@@ -98,6 +98,27 @@ $post = $postService->addQuote(
 );
 ```
 
+### Handling errors
+
+While performing requests using the API, exceptions may be thrown. 
+
+The exceptions are of the base type `potibm\Bluesky\Exception\Exception`.
+The exception message will contain details from the API.
+
+```
+try {
+    $response = $api->createRecord($post);
+} catch (\potibm\Bluesky\Exception\HttpRequestException $e) {
+    echo 'Error performing request on HTTP level: ' . $e->getMessage();
+} catch (\potibm\Bluesky\Exception\AuthenticationErrorException $e) {
+    echo 'Unable to authorize: ' . $e->getMessage();
+} catch (\potibm\Bluesky\Exception\HttpStatusCodeException $e) {
+    echo 'Unable to perform request on API level: ' . $e->getMessage();
+} catch (\potibm\Bluesky\Exception\InvalidPayloadException $e) {
+    echo 'Received unserializable JSON payload: ' . $e->getMessage();
+}
+``` 
+
 ## License
 
 The MIT License (MIT). Please see [License File](https://github.com/potibm/phluesky/blob/main/LICENSE) for more information.
