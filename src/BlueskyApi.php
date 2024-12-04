@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace potibm\Bluesky;
 
+use potibm\Bluesky\Exception\AuthenticationErrorException;
 use potibm\Bluesky\Exception\HttpRequestException;
 use potibm\Bluesky\Exception\HttpStatusCodeException;
 use potibm\Bluesky\Exception\InvalidPayloadException;
@@ -16,6 +17,10 @@ use Psr\Http\Client\ClientExceptionInterface;
 class BlueskyApi implements BlueskyApiInterface
 {
     private const BASE_URL = 'https://bsky.social/';
+
+    private const HTTP_OK = 200;
+
+    private const HTTP_UNAUTHORIZED = 401;
 
     private ?CreateSessionResponse $session = null;
 
@@ -166,7 +171,9 @@ class BlueskyApi implements BlueskyApiInterface
             throw new HttpRequestException('Failed to send the request: ' . $e->getMessage());
         }
 
-        if ($response->getStatusCode() != 200) {
+        if ($response->getStatusCode() === self::HTTP_UNAUTHORIZED) {
+            throw new AuthenticationErrorException('Authentication failed: ' . (string) $response->getBody(), 401);
+        } elseif ($response->getStatusCode() != self::HTTP_OK) {
             throw new HttpStatusCodeException('Received an HTTP error (' . $response->getStatusCode() . '): ' . (string) $response->getBody(), $response->getStatusCode());
         }
 
