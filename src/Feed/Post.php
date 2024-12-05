@@ -47,7 +47,7 @@ class Post implements JsonSerializable
 
     public function setCreatedAt(\DateTimeImmutable $createdAt): void
     {
-        $this->createdAt = $createdAt;
+        $this->createdAt = $createdAt->setTimezone(new \DateTimeZone('UTC'));
     }
 
     public function getFacets(): array
