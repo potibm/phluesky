@@ -11,6 +11,7 @@ use PHPUnit\Framework\TestCase;
 use potibm\Bluesky\BlueskyApi;
 use potibm\Bluesky\BlueskyUri;
 use potibm\Bluesky\Embed\Images;
+use potibm\Bluesky\Exception\AuthenticationErrorException;
 use potibm\Bluesky\Exception\HttpRequestException;
 use potibm\Bluesky\Exception\HttpStatusCodeException;
 use potibm\Bluesky\Exception\InvalidPayloadException;
@@ -88,6 +89,21 @@ class BlueskyApiTest extends TestCase
         ]);
         $api = new BlueskyApi('identifier', 'password', $httpComponent);
         $api->getDidForHandle('handle');
+    }
+
+    public function testAuthenticationErrorOnCreateRecord(): void
+    {
+        $this->expectException(AuthenticationErrorException::class);
+
+        $post = Post::create('Test for a post');
+
+        $httpComponent = $this->generateHttpComponentsManager(401, true, [
+            'error' => 'AuthenticationRequired',
+            'message' => 'Invalid identifier or password',
+        ]);
+        $api = new BlueskyApi('identifier', 'wrongpassword', $httpComponent);
+
+        $api->createRecord($post);
     }
 
     public function testCreateRecord(): void
