@@ -10,12 +10,21 @@ class Images implements Embeddable, \Countable
 {
     private array $images = [];
 
-    public function addImage(UploadBlobResponse $image, string $alt = ''): void
+    public function addImage(UploadBlobResponse $image, string $alt = '', ?array $aspectRatio = null): void
     {
-        $this->images[] = [
+        $imageData = [
             'alt' => $alt,
             'image' => $image,
         ];
+
+        if ($aspectRatio && isset($aspectRatio['width'], $aspectRatio['height'])) {
+            $imageData['aspectRatio'] = [
+                'width' => (int)$aspectRatio['width'],
+                'height' => (int)$aspectRatio['height'],
+            ];
+        }
+
+        $this->images[] = $imageData;
     }
 
     public function clearImages(): void

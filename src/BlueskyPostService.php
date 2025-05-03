@@ -140,9 +140,16 @@ class BlueskyPostService
         return $resultPost;
     }
 
-    public function addImage(Post $post, string $imageFile, string $altText): Post
+    public function addImage(Post $post, string $imageFile, string $altText, ?array $aspectRatio = null): Post
     {
         $blob = $this->createBlobFromFilename($imageFile);
+
+        if ($aspectRatio === null && file_exists($imageFile)) {
+            [$width, $height] = getimagesize($imageFile);
+            if ($width > 0 && $height > 0) {
+                $aspectRatio = ['width' => $width, 'height' => $height];
+            }
+        }
 
         $resultPost = clone $post;
         $embed = $resultPost->getEmbed();
@@ -150,7 +157,7 @@ class BlueskyPostService
             $embed = new Images();
             $resultPost->setEmbed($embed);
         }
-        $embed->addImage($blob, $altText);
+        $embed->addImage($blob, $altText, $aspectRatio);
 
         return $resultPost;
     }
