@@ -10,7 +10,7 @@ class Images implements Embeddable, \Countable
 {
     private array $images = [];
 
-    public function addImage(UploadBlobResponse $image, string $alt = '', ?array $aspectRatio = null): void
+    public function addImage(UploadBlobResponse $image, string $alt = '', ?aspectRatio $aspectRatio = null): void
     {
         $imageData = [
             'alt' => $alt,
@@ -18,10 +18,7 @@ class Images implements Embeddable, \Countable
         ];
 
         if ($aspectRatio && isset($aspectRatio['width'], $aspectRatio['height'])) {
-            $imageData['aspectRatio'] = [
-                'width' => (int)$aspectRatio['width'],
-                'height' => (int)$aspectRatio['height'],
-            ];
+            $imageData['aspectRatio'] = $aspectRatio->toArray();
         }
 
         $this->images[] = $imageData;
