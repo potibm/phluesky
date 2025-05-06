@@ -17,7 +17,7 @@ class Images implements Embeddable, \Countable
             'image' => $image,
         ];
 
-        if ($aspectRatio && isset($aspectRatio['width'], $aspectRatio['height'])) {
+        if ($aspectRatio !== null) {
             $imageData['aspectRatio'] = $aspectRatio->toArray();
         }
 
