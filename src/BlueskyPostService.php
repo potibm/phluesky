@@ -185,12 +185,12 @@ final class BlueskyPostService
             throw new FileNotFoundException('File not found: ' . $imageFile);
         }
 
-        $fileContents = file_get_contents($imageFile);
+        $fileContents = @file_get_contents($imageFile);
         if ($fileContents === false) {
             throw new FileNotFoundException('Unable to read file: ' . $imageFile);
         }
 
-        $fileMimeType = mime_content_type($imageFile);
+        $fileMimeType = @mime_content_type($imageFile);
         if ($fileMimeType === false) {
             throw new FileNotFoundException('Unable to determine mime type for file: ' . $imageFile);
         }

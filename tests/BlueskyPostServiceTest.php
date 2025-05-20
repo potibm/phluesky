@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace potibm\Bluesky\Test;
 
+use org\bovigo\vfs\vfsStream;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\MockObject\MockObject;
@@ -11,6 +12,7 @@ use PHPUnit\Framework\TestCase;
 use potibm\Bluesky\BlueskyApiInterface;
 use potibm\Bluesky\BlueskyPostService;
 use potibm\Bluesky\BlueskyUri;
+use potibm\Bluesky\Embed\AspectRatio;
 use potibm\Bluesky\Embed\External;
 use potibm\Bluesky\Embed\Images;
 use potibm\Bluesky\Embed\Record;
@@ -30,6 +32,7 @@ use potibm\Bluesky\Test\Response\RecordResponseTest;
 #[UsesClass(FacetMention::class)]
 #[UsesClass(FacetTag::class)]
 #[UsesClass(Images::class)]
+#[UsesClass(AspectRatio::class)]
 #[UsesClass(External::class)]
 #[UsesClass(BlueskyUri::class)]
 #[UsesClass(Record::class)]
@@ -120,7 +123,25 @@ final class BlueskyPostServiceTest extends TestCase
     public function testAddImage(): void
     {
         /** @psalm-suppress PossiblyNullArgument, PossiblyNullReference */
-        $resultPost = $this->postService->addImage($this->post, __FILE__, 'an alt text');
+        $resultPost = $this->postService->addImage($this->post, __FILE__, 'an alt text', null);
+
+        $embed = $resultPost->getEmbed();
+        $this->assertInstanceOf(Images::class, $embed);
+        $this->assertCount(1, $embed);
+    }
+
+    public function testAddImageWithoutAspectRatio(): void
+    {
+        /** @psalm-suppress PossiblyNullArgument, PossiblyNullReference */
+
+        $root = vfsStream::setup('root');
+        $file = vfsStream::newFile('image.png')->at($root);
+        $file->setContent(base64_decode(
+            'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8Xw8AAoMBgGZ4zBUAAAAASUVORK5CYII='
+        ));
+
+        /** @psalm-suppress PossiblyNullArgument, PossiblyNullReference */
+        $resultPost = $this->postService->addImage($this->post, $file->url(), 'an alt text', null);
 
         $embed = $resultPost->getEmbed();
         $this->assertInstanceOf(Images::class, $embed);
@@ -132,6 +153,17 @@ final class BlueskyPostServiceTest extends TestCase
         $this->expectException(FileNotFoundException::class);
         /** @psalm-suppress PossiblyNullArgument, PossiblyNullReference */
         $this->postService->addImage($this->post, __DIR__ . '/missingfile.png', 'an alt text');
+    }
+
+    public function testAddImgeWithUnreadableFile(): void
+    {
+        $this->expectException(FileNotFoundException::class);
+        $this->expectExceptionMessageMatches('/^Unable to read file/');
+
+        $root = vfsStream::setup('root');
+        $file = vfsStream::newFile('image.png', 0000)->at($root);
+
+        $this->postService->addImage($this->post, $file->url(), 'an alt text');
     }
 
     public function testAddExternal(): void

@@ -104,6 +104,33 @@ final class BlueskyApiTest extends TestCase
         $api->createRecord($post);
     }
 
+    public function testFailsOnInvalidJsonPayloadOnCreateRecord(): void
+    {
+        $this->expectException(InvalidPayloadException::class);
+        $this->expectExceptionMessage('Failed to encode body to JSON');
+
+        $httpComponent = $this->generateHttpComponentsManager(200, true, [
+            'accessJwt' => 'accessJwt',
+            'did' => 'did:bluesky:1234567890',
+        ], [
+            'uri' => 'my-uri',
+            'cid' => 'cid:1234567890',
+        ]);
+        $api = new BlueskyApi('identifier', 'password', $httpComponent);
+
+        $loop = new \stdClass();
+        $loop->self = $loop;
+
+        $badFacet = $this->createMock(\potibm\Bluesky\Richtext\AbstractFacet::class);
+        $badFacet->method('jsonSerialize')->willReturn($loop); // rekursiv → json_encode schlägt fehl
+
+        $post = new Post();
+        $post->setText('text');
+        $post->addFacet($badFacet);
+
+        $api->createRecord($post);
+    }
+
     public function testCreateRecord(): void
     {
         $post = Post::create('Test for a post');
@@ -173,15 +200,12 @@ final class BlueskyApiTest extends TestCase
         foreach ($bodies as $body) {
             if ($jsonEncode || ! is_string($body)) {
                 $body = json_encode($body);
-                if ($body === false) {
-                    throw new \RuntimeException('Failed to encode body to JSON: ' . json_last_error_msg());
-                }
             }
             $response = $this->createMock(ResponseInterface::class);
             $response->method('getStatusCode')->willReturn($statusCode);
-            $response->method('getBody')->willReturn(
-                $psr17Factory->createStream($body)
-            );
+            /** @psalm-suppress PossiblyFalseArgument */
+            $stream = $psr17Factory->createStream($body);
+            $response->method('getBody')->willReturn($stream);
             $responses[] = $response;
         }
 

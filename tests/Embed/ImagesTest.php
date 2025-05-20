@@ -7,12 +7,14 @@ namespace potibm\Bluesky\Test\Embed;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\TestCase;
+use potibm\Bluesky\Embed\AspectRatio;
 use potibm\Bluesky\Embed\Images;
 use potibm\Bluesky\Response\UploadBlobResponse;
 use potibm\Bluesky\Test\Response\UploadBlobResponseTest;
 
 #[CoversClass(Images::class)]
 #[UsesClass(UploadBlobResponse::class)]
+#[UsesClass(AspectRatio::class)]
 final class ImagesTest extends TestCase
 {
     public function testAndAndCount(): void
@@ -50,6 +52,23 @@ final class ImagesTest extends TestCase
 
         $this->assertArrayHasKey('image', $image);
         $this->assertEquals($blob, $image['image']);
+
+        $this->assertArrayNotHasKey('aspectRatio', $image);
+    }
+
+    public function testWithAspectRatio(): void
+    {
+        $aspectRatio = new AspectRatio(16, 9);
+
+        $images = new Images();
+        $blob = $this->createBlob();
+        $images->addImage($blob, 'my alt text', $aspectRatio);
+
+        $jsonOutput = $images->jsonSerialize();
+        $image = $jsonOutput['images'][0];
+
+        $this->assertIsArray($jsonOutput);
+        $this->assertArrayHasKey('aspectRatio', $image);
     }
 
     private function createBlob(): UploadBlobResponse
