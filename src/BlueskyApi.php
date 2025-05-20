@@ -9,6 +9,7 @@ use potibm\Bluesky\Exception\HttpStatusCodeException;
 use potibm\Bluesky\Exception\InvalidPayloadException;
 use potibm\Bluesky\Feed\Post;
 use potibm\Bluesky\Response\CreateSessionResponse;
+use potibm\Bluesky\Response\JobStatusResponse;
 use potibm\Bluesky\Response\RecordResponse;
 use potibm\Bluesky\Response\UploadBlobResponse;
 use Psr\Http\Client\ClientExceptionInterface;
@@ -16,6 +17,10 @@ use Psr\Http\Client\ClientExceptionInterface;
 class BlueskyApi implements BlueskyApiInterface
 {
     private const BASE_URL = 'https://bsky.social/';
+
+    private const HTTP_METHOD_GET = 'GET';
+
+    private const HTTP_METHOD_POST = 'POST';
 
     private ?CreateSessionResponse $session = null;
 
@@ -97,6 +102,47 @@ class BlueskyApi implements BlueskyApiInterface
         }
 
         return new UploadBlobResponse($jsonBody->blob);
+    }
+
+    public function uploadVideo(string $video, string $mimeType): JobStatusResponse
+    {
+        $jsonBody = $this->performXrpcCall(
+            self::HTTP_METHOD_POST,
+            'app.bsky.video.uploadVideo',
+            [],
+            $video,
+            [
+                'Content-Type' => $mimeType,
+                'Content-Length' => strlen($video),
+            ],
+            true,
+            false
+        );
+
+        if (! property_exists($jsonBody, 'jobStatus')) {
+            throw new InvalidPayloadException('JSON response does not contain "jobStatus" property');
+        }
+
+        return new JobStatusResponse($jsonBody->blob);
+    }
+
+    public function getJobStatus(string $jobId): JobStatusResponse
+    {
+        $jsonBody = $this->performXrpcCall(
+            self::HTTP_METHOD_GET,
+            'app.bsky.video.getJobStatus',
+            ['jobId' => $jobId],
+            [],
+            [],
+            false,
+            false
+        );
+
+        if (! property_exists($jsonBody, 'jobStatus')) {
+            throw new InvalidPayloadException('JSON response does not contain "jobStatus" property');
+        }
+
+        return new JobStatusResponse($jsonBody->blob);
     }
 
     private function getSession(): CreateSessionResponse
