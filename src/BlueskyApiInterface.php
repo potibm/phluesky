@@ -6,7 +6,7 @@ namespace potibm\Bluesky;
 
 use potibm\Bluesky\Feed\Post;
 use potibm\Bluesky\Response\RecordResponse;
-use potibm\Bluesky\Response\UploadBlobResponse;
+use potibm\Bluesky\Response\UploadBlobResponseInterface;
 
 interface BlueskyApiInterface
 {
@@ -14,5 +14,7 @@ interface BlueskyApiInterface
 
     public function createRecord(Post $post): RecordResponse;
 
-    public function uploadBlob(string $image, string $mimeType): UploadBlobResponse;
+    public function uploadBlob(string $image, string $mimeType): UploadBlobResponseInterface;
+
+    public function getRecord(BlueskyUri $uri): RecordResponse;
 }

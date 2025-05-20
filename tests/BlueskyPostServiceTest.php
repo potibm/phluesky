@@ -8,7 +8,6 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\UsesClass;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
-use potibm\Bluesky\BlueskyApi;
 use potibm\Bluesky\BlueskyApiInterface;
 use potibm\Bluesky\BlueskyPostService;
 use potibm\Bluesky\BlueskyUri;
@@ -37,7 +36,7 @@ use potibm\Bluesky\Test\Response\RecordResponseTest;
 #[UsesClass(Record::class)]
 #[UsesClass(RecordResponse::class)]
 #[UsesClass(ResponseTrait::class)]
-class BlueskyPostServiceTest extends TestCase
+final class BlueskyPostServiceTest extends TestCase
 {
     private const SAMPLE = '✨ example mentioning @atproto.com ' .
         'to share the URL 👨‍❤️‍👨 https://en.wikipedia.org/wiki/CBOR. and a #HashtagFun.';
@@ -225,11 +224,12 @@ class BlueskyPostServiceTest extends TestCase
         $this->assertEquals($recordResponseParentBlob->uri, $json['reply']['parent']['uri']);
     }
 
+    #[\Override]
     public function setUp(): void
     {
         $this->post = Post::create(self::SAMPLE);
 
-        $this->clientMock = $this->createMock(BlueskyApi::class);
+        $this->clientMock = $this->createMock(BlueskyApiInterface::class);
         $this->clientMock->method('getDidForHandle')->with('atproto.com')
             ->willReturn('did:plc:ewvi7nxzyoun6zhxrhs64oiz');
 

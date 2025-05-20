@@ -6,7 +6,7 @@ namespace potibm\Bluesky\Response;
 
 use potibm\Bluesky\BlueskyUri;
 
-class RecordResponse
+final class RecordResponse
 {
     use ResponseTrait;
 

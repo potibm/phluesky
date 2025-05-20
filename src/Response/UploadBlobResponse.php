@@ -4,9 +4,7 @@ declare(strict_types=1);
 
 namespace potibm\Bluesky\Response;
 
-use JsonSerializable;
-
-class UploadBlobResponse implements JsonSerializable
+final class UploadBlobResponse implements UploadBlobResponseInterface
 {
     use ResponseTrait;
 
@@ -23,21 +21,25 @@ class UploadBlobResponse implements JsonSerializable
         $this->refLink = (string) $this->getSecondLevelSessionProperty($response, 'ref', '$link');
     }
 
+    #[\Override]
     public function getMimeType(): string
     {
         return $this->mimeType;
     }
 
+    #[\Override]
     public function getSize(): int
     {
         return $this->size;
     }
 
+    #[\Override]
     public function getRefLink(): string
     {
         return $this->refLink;
     }
 
+    #[\Override]
     public function jsonSerialize(): mixed
     {
         return [

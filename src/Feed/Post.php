@@ -9,7 +9,7 @@ use potibm\Bluesky\Embed\Embeddable;
 use potibm\Bluesky\Response\RecordResponse;
 use potibm\Bluesky\Richtext\AbstractFacet;
 
-class Post implements JsonSerializable
+final class Post implements JsonSerializable
 {
     private const TYPE = 'app.bsky.feed.post';
 
@@ -98,6 +98,7 @@ class Post implements JsonSerializable
         $this->reply = null;
     }
 
+    #[\Override]
     public function jsonSerialize(): mixed
     {
         $post = [

@@ -13,7 +13,7 @@ use potibm\Bluesky\Test\Response\UploadBlobResponseTest;
 
 #[CoversClass(Images::class)]
 #[UsesClass(UploadBlobResponse::class)]
-class ImagesTest extends TestCase
+final class ImagesTest extends TestCase
 {
     public function testAndAndCount(): void
     {

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace potibm\Bluesky\Richtext;
 
-class FacetLink extends AbstractFacet
+final class FacetLink extends AbstractFacet
 {
     private string $uri = '';
 
@@ -22,6 +22,7 @@ class FacetLink extends AbstractFacet
         $this->uri = $uri;
     }
 
+    #[\Override]
     protected function getFeature(): array
     {
         return [

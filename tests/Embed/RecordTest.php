@@ -16,7 +16,7 @@ use potibm\Bluesky\Response\ResponseTrait;
 #[UsesClass(BlueskyUri::class)]
 #[UsesClass(RecordResponse::class)]
 #[UsesClass(ResponseTrait::class)]
-class RecordTest extends TestCase
+final class RecordTest extends TestCase
 {
     public function testCreate(): void
     {

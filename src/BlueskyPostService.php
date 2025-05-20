@@ -9,12 +9,12 @@ use potibm\Bluesky\Embed\Images;
 use potibm\Bluesky\Embed\Record;
 use potibm\Bluesky\Exception\FileNotFoundException;
 use potibm\Bluesky\Feed\Post;
-use potibm\Bluesky\Response\UploadBlobResponse;
+use potibm\Bluesky\Response\UploadBlobResponseInterface;
 use potibm\Bluesky\Richtext\FacetLink;
 use potibm\Bluesky\Richtext\FacetMention;
 use potibm\Bluesky\Richtext\FacetTag;
 
-class BlueskyPostService
+final class BlueskyPostService
 {
     private const REGEXP_HANDLE = '([a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)' .
         '+[a-zA-Z]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?';
@@ -23,7 +23,7 @@ class BlueskyPostService
         '[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~\#?&//=]*[-a-zA-Z0-9@%_\+~\#//=])?';
 
     public function __construct(
-        private BlueskyApi $blueskyClient
+        private BlueskyApiInterface $blueskyClient
     ) {
     }
 
@@ -171,15 +171,25 @@ class BlueskyPostService
         return $resultPost;
     }
 
-    private function createBlobFromFilename(string $imageFile): UploadBlobResponse
+    private function createBlobFromFilename(string $imageFile): UploadBlobResponseInterface
     {
         if (! file_exists($imageFile)) {
             throw new FileNotFoundException('File not found: ' . $imageFile);
         }
 
+        $fileContents = file_get_contents($imageFile);
+        if ($fileContents === false) {
+            throw new FileNotFoundException('Unable to read file: ' . $imageFile);
+        }
+
+        $fileMimeType = mime_content_type($imageFile);
+        if ($fileMimeType === false) {
+            throw new FileNotFoundException('Unable to determine mime type for file: ' . $imageFile);
+        }
+
         return $this->blueskyClient->uploadBlob(
-            file_get_contents($imageFile),
-            mime_content_type($imageFile)
+            $fileContents,
+            $fileMimeType
         );
     }
 }

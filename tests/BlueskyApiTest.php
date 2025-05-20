@@ -37,7 +37,7 @@ use Psr\Http\Message\UriFactoryInterface;
 #[UsesClass(Images::class)]
 #[UsesClass(UploadBlobResponse::class)]
 #[UsesClass(BlueskyUri::class)]
-class BlueskyApiTest extends TestCase
+final class BlueskyApiTest extends TestCase
 {
     public function testGetDidForHandle(): void
     {
@@ -167,14 +167,17 @@ class BlueskyApiTest extends TestCase
         $this->assertInstanceOf(RecordResponse::class, $response);
     }
 
-    private function generateHttpComponentsManager(int $statusCode, bool $jsonEncode, mixed ...$bodies): HttpComponentsManager
+    private function generateHttpComponentsManager(int $statusCode, bool $jsonEncode, array|string|\stdClass ...$bodies): HttpComponentsManager
     {
         $psr17Factory = new Psr17Factory();
 
         $responses = [];
         foreach ($bodies as $body) {
-            if ($jsonEncode) {
+            if ($jsonEncode || ! is_string($body)) {
                 $body = json_encode($body);
+                if ($body === false) {
+                    throw new \RuntimeException('Failed to encode body to JSON: ' . json_last_error_msg());
+                }
             }
             $response = $this->createMock(ResponseInterface::class);
             $response->method('getStatusCode')->willReturn($statusCode);

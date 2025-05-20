@@ -11,7 +11,7 @@ use potibm\Bluesky\Richtext\FacetTag;
 
 #[CoversClass(FacetTag::class)]
 #[CoversClass(AbstractFacet::class)]
-class FaceTagTest extends TestCase
+final class FaceTagTest extends TestCase
 {
     public function testCreate(): void
     {

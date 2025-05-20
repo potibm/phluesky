@@ -11,7 +11,7 @@ use Psr\Http\Message\RequestFactoryInterface;
 use Psr\Http\Message\StreamFactoryInterface;
 use Psr\Http\Message\UriFactoryInterface;
 
-class HttpComponentsManager
+final class HttpComponentsManager
 {
     public readonly ClientInterface $httpClient;
 

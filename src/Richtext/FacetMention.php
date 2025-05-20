@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace potibm\Bluesky\Richtext;
 
-class FacetMention extends AbstractFacet
+final class FacetMention extends AbstractFacet
 {
     private string $did = '';
 
@@ -22,6 +22,7 @@ class FacetMention extends AbstractFacet
         $this->did = $did;
     }
 
+    #[\Override]
     protected function getFeature(): array
     {
         return [

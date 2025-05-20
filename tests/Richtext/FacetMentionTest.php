@@ -11,7 +11,7 @@ use potibm\Bluesky\Richtext\FacetMention;
 
 #[CoversClass(FacetMention::class)]
 #[CoversClass(AbstractFacet::class)]
-class FacetMentionTest extends TestCase
+final class FacetMentionTest extends TestCase
 {
     public function testCreate(): void
     {

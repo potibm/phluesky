@@ -28,7 +28,7 @@ use potibm\Bluesky\Test\Response\UploadBlobResponseTest;
 #[UsesClass(UploadBlobResponse::class)]
 #[UsesClass(BlueskyUri::class)]
 #[UsesClass(RecordResponse::class)]
-class PostTest extends TestCase
+final class PostTest extends TestCase
 {
     public function testMinimalToJson(): void
     {

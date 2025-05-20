@@ -12,7 +12,7 @@ use potibm\Bluesky\Response\RecordResponse;
 
 #[CoversClass(RecordResponse::class)]
 #[UsesClass(BlueskyUri::class)]
-class RecordResponseTest extends TestCase
+final class RecordResponseTest extends TestCase
 {
     public function testCreateValidObject(): void
     {
