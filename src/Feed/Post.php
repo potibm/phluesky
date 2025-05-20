@@ -27,7 +27,7 @@ final class Post implements JsonSerializable
 
     public function __construct()
     {
-        $this->createdAt = new \DateTimeImmutable();
+        $this->createdAt = new \DateTimeImmutable('now', new \DateTimeZone('UTC'));
     }
 
     public function getText(): string
@@ -47,7 +47,7 @@ final class Post implements JsonSerializable
 
     public function setCreatedAt(\DateTimeImmutable $createdAt): void
     {
-        $this->createdAt = $createdAt;
+        $this->createdAt = $createdAt->setTimezone(new \DateTimeZone('UTC'));
     }
 
     public function getFacets(): array
