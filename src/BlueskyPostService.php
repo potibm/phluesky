@@ -13,6 +13,7 @@ use potibm\Bluesky\Response\UploadBlobResponse;
 use potibm\Bluesky\Richtext\FacetLink;
 use potibm\Bluesky\Richtext\FacetMention;
 use potibm\Bluesky\Richtext\FacetTag;
+use potibm\Bluesky\Embed\AspectRatio;
 
 class BlueskyPostService
 {
@@ -140,9 +141,16 @@ class BlueskyPostService
         return $resultPost;
     }
 
-    public function addImage(Post $post, string $imageFile, string $altText): Post
+    public function addImage(Post $post, string $imageFile, string $altText, ?AspectRatio $aspectRatio = null): Post
     {
         $blob = $this->createBlobFromFilename($imageFile);
+
+        if ($aspectRatio === null) {
+            $size = @getimagesize($imageFile);
+            if ($size !== false) {
+                $aspectRatio = new AspectRatio($size[0], $size[1]);
+            }
+        }
 
         $resultPost = clone $post;
         $embed = $resultPost->getEmbed();
@@ -150,7 +158,7 @@ class BlueskyPostService
             $embed = new Images();
             $resultPost->setEmbed($embed);
         }
-        $embed->addImage($blob, $altText);
+        $embed->addImage($blob, $altText, $aspectRatio);
 
         return $resultPost;
     }
