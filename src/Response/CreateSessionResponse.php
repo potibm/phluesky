@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace potibm\Bluesky\Response;
 
-class CreateSessionResponse
+final class CreateSessionResponse
 {
     use ResponseTrait;
 

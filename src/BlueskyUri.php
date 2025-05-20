@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace potibm\Bluesky;
 
-class BlueskyUri implements \Stringable
+final class BlueskyUri implements \Stringable
 {
     private array $parts;
 
@@ -36,6 +36,7 @@ class BlueskyUri implements \Stringable
         return $this->parts[2];
     }
 
+    #[\Override]
     public function __toString(): string
     {
         return $this->uri;

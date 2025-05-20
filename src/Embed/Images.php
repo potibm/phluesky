@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace potibm\Bluesky\Embed;
 
-use potibm\Bluesky\Response\UploadBlobResponse;
+use potibm\Bluesky\Response\UploadBlobResponseInterface;
 
-class Images implements Embeddable, \Countable
+final class Images implements Embeddable, \Countable
 {
     private array $images = [];
 
-    public function addImage(UploadBlobResponse $image, string $alt = '', ?aspectRatio $aspectRatio = null): void
+    public function addImage(UploadBlobResponseInterface $image, string $alt = '', ?AspectRatio $aspectRatio = null): void
     {
         $imageData = [
             'alt' => $alt,
@@ -29,11 +29,13 @@ class Images implements Embeddable, \Countable
         $this->images = [];
     }
 
+    #[\Override]
     public function count(): int
     {
         return count($this->images);
     }
 
+    #[\Override]
     public function jsonSerialize(): mixed
     {
         return [

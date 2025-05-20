@@ -9,7 +9,7 @@ use PHPUnit\Framework\TestCase;
 use potibm\Bluesky\BlueskyUri;
 
 #[CoversClass(BlueskyUri::class)]
-class BlueskyUriTest extends TestCase
+final class BlueskyUriTest extends TestCase
 {
     public function testSimple(): void
     {

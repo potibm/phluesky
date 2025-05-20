@@ -1,9 +1,11 @@
 <?php
+
 namespace potibm\Bluesky\Embed;
 
-class AspectRatio
+final class AspectRatio
 {
     public int $width;
+
     public int $height;
 
     public function __construct(int $width, int $height)

@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace potibm\Bluesky\Embed;
 
-use potibm\Bluesky\Response\UploadBlobResponse;
+use potibm\Bluesky\Response\UploadBlobResponseInterface;
 
-class External implements Embeddable
+final class External implements Embeddable
 {
     private string $uri = '';
 
@@ -14,8 +14,9 @@ class External implements Embeddable
 
     private string $description = '';
 
-    private ?UploadBlobResponse $thumb = null;
+    private ?UploadBlobResponseInterface $thumb = null;
 
+    #[\Override]
     public function jsonSerialize(): mixed
     {
         $json = [
@@ -64,17 +65,17 @@ class External implements Embeddable
         $this->description = $description;
     }
 
-    public function getThumb(): ?UploadBlobResponse
+    public function getThumb(): ?UploadBlobResponseInterface
     {
         return $this->thumb;
     }
 
-    public function setThumb(?UploadBlobResponse $thumb): void
+    public function setThumb(?UploadBlobResponseInterface $thumb): void
     {
         $this->thumb = $thumb;
     }
 
-    public static function create(string $uri, string $title, string $description, ?UploadBlobResponse $thumb = null): self
+    public static function create(string $uri, string $title, string $description, ?UploadBlobResponseInterface $thumb = null): self
     {
         $external = new self();
         $external->setUri($uri);

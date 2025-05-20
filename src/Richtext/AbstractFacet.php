@@ -36,6 +36,7 @@ abstract class AbstractFacet implements JsonSerializable
 
     abstract protected function getFeature(): array;
 
+    #[\Override]
     public function jsonSerialize(): mixed
     {
         return [

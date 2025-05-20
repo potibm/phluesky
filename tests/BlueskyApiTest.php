@@ -19,7 +19,6 @@ use potibm\Bluesky\Feed\Post;
 use potibm\Bluesky\HttpComponentsManager;
 use potibm\Bluesky\Response\CreateSessionResponse;
 use potibm\Bluesky\Response\RecordResponse;
-use potibm\Bluesky\Response\ResponseTrait;
 use potibm\Bluesky\Response\UploadBlobResponse;
 use potibm\Bluesky\Test\Response\RecordResponseTest;
 use potibm\Bluesky\Test\Response\UploadBlobResponseTest;
@@ -33,11 +32,10 @@ use Psr\Http\Message\UriFactoryInterface;
 #[UsesClass(Post::class)]
 #[UsesClass(RecordResponse::class)]
 #[UsesClass(CreateSessionResponse::class)]
-#[UsesClass(ResponseTrait::class)]
 #[UsesClass(Images::class)]
 #[UsesClass(UploadBlobResponse::class)]
 #[UsesClass(BlueskyUri::class)]
-class BlueskyApiTest extends TestCase
+final class BlueskyApiTest extends TestCase
 {
     public function testGetDidForHandle(): void
     {
@@ -106,6 +104,33 @@ class BlueskyApiTest extends TestCase
         $api->createRecord($post);
     }
 
+    public function testFailsOnInvalidJsonPayloadOnCreateRecord(): void
+    {
+        $this->expectException(InvalidPayloadException::class);
+        $this->expectExceptionMessage('Failed to encode body to JSON');
+
+        $httpComponent = $this->generateHttpComponentsManager(200, true, [
+            'accessJwt' => 'accessJwt',
+            'did' => 'did:bluesky:1234567890',
+        ], [
+            'uri' => 'my-uri',
+            'cid' => 'cid:1234567890',
+        ]);
+        $api = new BlueskyApi('identifier', 'password', $httpComponent);
+
+        $loop = new \stdClass();
+        $loop->self = $loop;
+
+        $badFacet = $this->createMock(\potibm\Bluesky\Richtext\AbstractFacet::class);
+        $badFacet->method('jsonSerialize')->willReturn($loop); // rekursiv → json_encode schlägt fehl
+
+        $post = new Post();
+        $post->setText('text');
+        $post->addFacet($badFacet);
+
+        $api->createRecord($post);
+    }
+
     public function testCreateRecord(): void
     {
         $post = Post::create('Test for a post');
@@ -167,20 +192,20 @@ class BlueskyApiTest extends TestCase
         $this->assertInstanceOf(RecordResponse::class, $response);
     }
 
-    private function generateHttpComponentsManager(int $statusCode, bool $jsonEncode, mixed ...$bodies): HttpComponentsManager
+    private function generateHttpComponentsManager(int $statusCode, bool $jsonEncode, array|string|\stdClass ...$bodies): HttpComponentsManager
     {
         $psr17Factory = new Psr17Factory();
 
         $responses = [];
         foreach ($bodies as $body) {
-            if ($jsonEncode) {
+            if ($jsonEncode || ! is_string($body)) {
                 $body = json_encode($body);
             }
             $response = $this->createMock(ResponseInterface::class);
             $response->method('getStatusCode')->willReturn($statusCode);
-            $response->method('getBody')->willReturn(
-                $psr17Factory->createStream($body)
-            );
+            /** @psalm-suppress PossiblyFalseArgument */
+            $stream = $psr17Factory->createStream($body);
+            $response->method('getBody')->willReturn($stream);
             $responses[] = $response;
         }
 

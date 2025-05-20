@@ -6,12 +6,13 @@ namespace potibm\Bluesky\Embed;
 
 use potibm\Bluesky\Response\RecordResponse;
 
-class Record implements Embeddable
+final class Record implements Embeddable
 {
     private string $uri = '';
 
     private string $cid = '';
 
+    #[\Override]
     public function jsonSerialize(): mixed
     {
         $json = [

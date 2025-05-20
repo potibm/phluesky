@@ -9,7 +9,7 @@ use PHPUnit\Framework\TestCase;
 use potibm\Bluesky\Response\CreateSessionResponse;
 
 #[CoversClass(CreateSessionResponse::class)]
-class CreateSessionResponseTest extends TestCase
+final class CreateSessionResponseTest extends TestCase
 {
     public function testCreateValidObject(): void
     {

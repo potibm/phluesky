@@ -14,7 +14,7 @@ use potibm\Bluesky\Response\RecordResponse;
 use potibm\Bluesky\Response\UploadBlobResponse;
 use Psr\Http\Client\ClientExceptionInterface;
 
-class BlueskyApi implements BlueskyApiInterface
+final class BlueskyApi implements BlueskyApiInterface
 {
     private const BASE_URL = 'https://bsky.social/';
 
@@ -32,6 +32,7 @@ class BlueskyApi implements BlueskyApiInterface
     ) {
     }
 
+    #[\Override]
     public function getDidForHandle(string $handle): string
     {
         $jsonBody = $this->performXrpcCall(
@@ -53,6 +54,7 @@ class BlueskyApi implements BlueskyApiInterface
         return $jsonBody->did;
     }
 
+    #[\Override]
     public function createRecord(Post $post): RecordResponse
     {
         return new RecordResponse($this->performXrpcCall(
@@ -67,6 +69,7 @@ class BlueskyApi implements BlueskyApiInterface
         ));
     }
 
+    #[\Override]
     public function getRecord(BlueskyUri $uri): RecordResponse
     {
         return new RecordResponse($this->performXrpcCall(
@@ -83,6 +86,7 @@ class BlueskyApi implements BlueskyApiInterface
         ));
     }
 
+    #[\Override]
     public function uploadBlob(string $image, string $mimeType): UploadBlobResponse
     {
         $jsonBody = $this->performXrpcCall(
@@ -128,11 +132,16 @@ class BlueskyApi implements BlueskyApiInterface
         ));
     }
 
+    /**
+     * @param (mixed|string)[]|string $body
+     *
+     * @psalm-param array{repo?: string, collection?: 'app.bsky.feed.post', record?: mixed, identifier?: string, password?: string}|string $body
+     */
     private function performXrpcCall(
         string $httpMethod,
         string $method,
         array $params = [],
-        mixed $body = [],
+        array|string $body = [],
         array $headers = [],
         bool $authenticated = true,
         bool $encodeBody = true
@@ -157,8 +166,11 @@ class BlueskyApi implements BlueskyApiInterface
         }
 
         if ($body) {
-            if ($encodeBody) {
+            if ($encodeBody || ! is_string($body)) {
                 $body = json_encode($body);
+                if ($body === false) {
+                    throw new InvalidPayloadException('Failed to encode body to JSON: ' . json_last_error_msg());
+                }
             }
             $bodyObject = $this->options->streamFactory->createStream($body);
             $request = $request->withBody($bodyObject);

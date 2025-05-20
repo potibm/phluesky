@@ -11,7 +11,7 @@ use potibm\Bluesky\Richtext\FacetLink;
 
 #[CoversClass(FacetLink::class)]
 #[CoversClass(AbstractFacet::class)]
-class FacetLinkTest extends TestCase
+final class FacetLinkTest extends TestCase
 {
     public function testCreate(): void
     {

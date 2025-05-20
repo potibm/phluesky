@@ -9,7 +9,7 @@ use PHPUnit\Framework\TestCase;
 use potibm\Bluesky\Response\UploadBlobResponse;
 
 #[CoversClass(UploadBlobResponse::class)]
-class UploadBlobResponseTest extends TestCase
+final class UploadBlobResponseTest extends TestCase
 {
     public function testCreateValidObject(): void
     {

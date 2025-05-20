@@ -11,7 +11,6 @@ use potibm\Bluesky\BlueskyUri;
 use potibm\Bluesky\Embed\Images;
 use potibm\Bluesky\Feed\Post;
 use potibm\Bluesky\Response\RecordResponse;
-use potibm\Bluesky\Response\ResponseTrait;
 use potibm\Bluesky\Response\UploadBlobResponse;
 use potibm\Bluesky\Richtext\AbstractFacet;
 use potibm\Bluesky\Richtext\FacetLink;
@@ -24,11 +23,10 @@ use potibm\Bluesky\Test\Response\UploadBlobResponseTest;
 #[UsesClass(FacetLink::class)]
 #[UsesClass(FacetMention::class)]
 #[UsesClass(Images::class)]
-#[UsesClass(ResponseTrait::class)]
 #[UsesClass(UploadBlobResponse::class)]
 #[UsesClass(BlueskyUri::class)]
 #[UsesClass(RecordResponse::class)]
-class PostTest extends TestCase
+final class PostTest extends TestCase
 {
     public function testMinimalToJson(): void
     {

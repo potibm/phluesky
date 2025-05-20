@@ -2,7 +2,7 @@
 
 namespace potibm\Bluesky\Richtext;
 
-class FacetTag extends AbstractFacet
+final class FacetTag extends AbstractFacet
 {
     private string $tag = '';
 
@@ -20,6 +20,7 @@ class FacetTag extends AbstractFacet
         $this->tag = $tag;
     }
 
+    #[\Override]
     protected function getFeature(): array
     {
         return [

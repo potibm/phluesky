@@ -13,7 +13,7 @@ use potibm\Bluesky\Test\Response\UploadBlobResponseTest;
 
 #[CoversClass(External::class)]
 #[UsesClass(UploadBlobResponse::class)]
-class ExternalTest extends TestCase
+final class ExternalTest extends TestCase
 {
     public function testCreate(): void
     {
