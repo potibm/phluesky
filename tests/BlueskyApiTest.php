@@ -19,7 +19,6 @@ use potibm\Bluesky\Feed\Post;
 use potibm\Bluesky\HttpComponentsManager;
 use potibm\Bluesky\Response\CreateSessionResponse;
 use potibm\Bluesky\Response\RecordResponse;
-use potibm\Bluesky\Response\ResponseTrait;
 use potibm\Bluesky\Response\UploadBlobResponse;
 use potibm\Bluesky\Test\Response\RecordResponseTest;
 use potibm\Bluesky\Test\Response\UploadBlobResponseTest;
@@ -33,7 +32,6 @@ use Psr\Http\Message\UriFactoryInterface;
 #[UsesClass(Post::class)]
 #[UsesClass(RecordResponse::class)]
 #[UsesClass(CreateSessionResponse::class)]
-#[UsesClass(ResponseTrait::class)]
 #[UsesClass(Images::class)]
 #[UsesClass(UploadBlobResponse::class)]
 #[UsesClass(BlueskyUri::class)]

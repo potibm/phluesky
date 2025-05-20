@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace potibm\Bluesky;
 
+use potibm\Bluesky\Embed\AspectRatio;
 use potibm\Bluesky\Embed\External;
 use potibm\Bluesky\Embed\Images;
 use potibm\Bluesky\Embed\Record;
@@ -13,7 +14,6 @@ use potibm\Bluesky\Response\UploadBlobResponseInterface;
 use potibm\Bluesky\Richtext\FacetLink;
 use potibm\Bluesky\Richtext\FacetMention;
 use potibm\Bluesky\Richtext\FacetTag;
-use potibm\Bluesky\Embed\AspectRatio;
 
 final class BlueskyPostService
 {

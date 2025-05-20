@@ -17,7 +17,6 @@ use potibm\Bluesky\Embed\Record;
 use potibm\Bluesky\Exception\FileNotFoundException;
 use potibm\Bluesky\Feed\Post;
 use potibm\Bluesky\Response\RecordResponse;
-use potibm\Bluesky\Response\ResponseTrait;
 use potibm\Bluesky\Richtext\AbstractFacet;
 use potibm\Bluesky\Richtext\FacetLink;
 use potibm\Bluesky\Richtext\FacetMention;
@@ -35,7 +34,6 @@ use potibm\Bluesky\Test\Response\RecordResponseTest;
 #[UsesClass(BlueskyUri::class)]
 #[UsesClass(Record::class)]
 #[UsesClass(RecordResponse::class)]
-#[UsesClass(ResponseTrait::class)]
 final class BlueskyPostServiceTest extends TestCase
 {
     private const SAMPLE = '✨ example mentioning @atproto.com ' .

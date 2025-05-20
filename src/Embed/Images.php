@@ -10,7 +10,7 @@ final class Images implements Embeddable, \Countable
 {
     private array $images = [];
 
-    public function addImage(UploadBlobResponseInterface $image, string $alt = '', ?aspectRatio $aspectRatio = null): void
+    public function addImage(UploadBlobResponseInterface $image, string $alt = '', ?AspectRatio $aspectRatio = null): void
     {
         $imageData = [
             'alt' => $alt,

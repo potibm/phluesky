@@ -10,12 +10,10 @@ use PHPUnit\Framework\TestCase;
 use potibm\Bluesky\BlueskyUri;
 use potibm\Bluesky\Embed\Record;
 use potibm\Bluesky\Response\RecordResponse;
-use potibm\Bluesky\Response\ResponseTrait;
 
 #[CoversClass(Record::class)]
 #[UsesClass(BlueskyUri::class)]
 #[UsesClass(RecordResponse::class)]
-#[UsesClass(ResponseTrait::class)]
 final class RecordTest extends TestCase
 {
     public function testCreate(): void
