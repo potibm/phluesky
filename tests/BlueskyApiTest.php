@@ -63,8 +63,7 @@ final class BlueskyApiTest extends TestCase
     {
         $this->expectException(HttpStatusCodeException::class);
 
-        $httpComponent = $this->generateHttpComponentsManager(404, true, [
-        ]);
+        $httpComponent = $this->generateHttpComponentsManager(404, true, []);
         $api = new BlueskyApi('identifier', 'password', $httpComponent);
         $api->getDidForHandle('handle');
     }

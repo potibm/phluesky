@@ -23,20 +23,18 @@ final class FacetMentionTest extends TestCase
 
         $this->assertEquals(
             [
-                'index' =>
-                            [
-                                'byteStart' => 5,
-                                'byteEnd' => 16,
-                            ],
-                'features' =>
+                'index' => [
+                    'byteStart' => 5,
+                    'byteEnd' => 16,
+                ],
+                'features' => [
+
                     [
-
-                        [
-                            '$type' => 'app.bsky.richtext.facet#mention',
-                            'did' => 'mydid',
-                        ],
-
+                        '$type' => 'app.bsky.richtext.facet#mention',
+                        'did' => 'mydid',
                     ],
+
+                ],
             ],
             $link->jsonSerialize()
         );

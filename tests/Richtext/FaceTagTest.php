@@ -23,20 +23,18 @@ final class FaceTagTest extends TestCase
 
         $this->assertEquals(
             [
-                'index' =>
-                            [
-                                'byteStart' => 5,
-                                'byteEnd' => 16,
-                            ],
-                'features' =>
+                'index' => [
+                    'byteStart' => 5,
+                    'byteEnd' => 16,
+                ],
+                'features' => [
+
                     [
-
-                        [
-                            '$type' => 'app.bsky.richtext.facet#tag',
-                            'tag' => 'mytag',
-                        ],
-
+                        '$type' => 'app.bsky.richtext.facet#tag',
+                        'tag' => 'mytag',
                     ],
+
+                ],
             ],
             $tag->jsonSerialize()
         );

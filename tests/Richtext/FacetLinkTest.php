@@ -23,20 +23,18 @@ final class FacetLinkTest extends TestCase
 
         $this->assertEquals(
             [
-                'index' =>
-                            [
-                                'byteStart' => 5,
-                                'byteEnd' => 16,
-                            ],
-                'features' =>
+                'index' => [
+                    'byteStart' => 5,
+                    'byteEnd' => 16,
+                ],
+                'features' => [
+
                     [
-
-                        [
-                            '$type' => 'app.bsky.richtext.facet#link',
-                            'uri' => 'myuri',
-                        ],
-
+                        '$type' => 'app.bsky.richtext.facet#link',
+                        'uri' => 'myuri',
                     ],
+
+                ],
             ],
             $link->jsonSerialize()
         );
