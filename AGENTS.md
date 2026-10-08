@@ -14,7 +14,7 @@ Run all three before finishing; CI enforces them.
 ## Layout
 
 - `src/` → namespace `potibm\Bluesky\`; `tests/` → `potibm\Bluesky\Test\` (PSR-4 in `composer.json`).
-- `BlueskyApi` (`src/BlueskyApi.php`) implements `BlueskyApiInterface`; does XRPC calls and caches the session.
+- `BlueskyApi` (`src/BlueskyApi.php`) implements `BlueskyApiInterface`; does XRPC calls and caches the session. An optional PSR-16 `CacheInterface` (any implementation, e.g. `symfony/cache`) persists sessions; on HTTP 401 it auto-refreshes via `refreshSession()` and retries once.
 - `BlueskyPostService` builds posts, facets (`src/Richtext/`), and embeds (`src/Embed/`); `Feed/Post` is the record payload.
 - Media uploads go through `src/Media/`: `addImage()`/`addWebsiteCard()` accept a `MediaSource` (`FileMediaSource`, `BlobMediaSource`). Passing a file path string still works but triggers `E_USER_DEPRECATED`; keep this migration path in mind when touching those methods.
 - `HttpComponentsManager` resolves PSR-18/17 clients via `php-http/discovery`; the discovery Composer plugin is intentionally disabled (`allow-plugins`).

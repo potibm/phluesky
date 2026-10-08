@@ -118,6 +118,40 @@ $post = $postService->addQuote(
 );
 ```
 
+### Reusing sessions
+
+By default a new session is created for every `BlueskyApi` instance. Bluesky
+rate-limits session creation, so for long-running or repeated use you should
+reuse sessions. Pass any [PSR-16](https://www.php-fig.org/psr/psr-16/) cache to
+the constructor; this example uses `symfony/cache`:
+
+```bash
+composer require symfony/cache
+```
+
+```php
+use potibm\Bluesky\HttpComponentsManager;
+use Symfony\Component\Cache\Adapter\FilesystemAdapter;
+use Symfony\Component\Cache\Psr16Cache;
+
+$cache = new Psr16Cache(new FilesystemAdapter('phluesky', 0, sys_get_temp_dir()));
+
+$api = new \potibm\Bluesky\BlueskyApi(
+    'nick.bsky.social',
+    'abcd-efgh-ijkl-mnop',
+    new HttpComponentsManager(),
+    cache: $cache
+);
+```
+
+The session (including the refresh token) is stored in the cache and reused by
+later instances. When an access token expires, the library automatically
+refreshes the session and retries the request once.
+
+Any implementation listed under
+[`psr/simple-cache-implementation`](https://packagist.org/providers/psr/simple-cache-implementation)
+works, so you can use whatever cache backend your project already has.
+
 ### Handling errors
 
 While performing requests using the API, exceptions may be thrown. 

@@ -13,6 +13,7 @@ use potibm\Bluesky\Response\CreateSessionResponse;
 use potibm\Bluesky\Response\RecordResponse;
 use potibm\Bluesky\Response\UploadBlobResponse;
 use Psr\Http\Client\ClientExceptionInterface;
+use Psr\SimpleCache\CacheInterface;
 
 final class BlueskyApi implements BlueskyApiInterface
 {
@@ -22,14 +23,27 @@ final class BlueskyApi implements BlueskyApiInterface
 
     private const HTTP_UNAUTHORIZED = 401;
 
+    /**
+     * Refresh tokens are valid for roughly two months, see
+     * https://atproto.com/specs/xrpc#authentication.
+     */
+    private const SESSION_TTL = 60 * 24 * 60 * 60;
+
     private ?CreateSessionResponse $session = null;
 
     public function __construct(
         private string $identifier,
         private string $password,
         private HttpComponentsManager $options = new HttpComponentsManager(),
-        private string $baseUrl = self::BASE_URL
+        private string $baseUrl = self::BASE_URL,
+        private ?CacheInterface $cache = null
     ) {
+        if ($this->cache !== null) {
+            $cachedSession = $this->cache->get($this->getCacheKey());
+            if (is_array($cachedSession)) {
+                $this->session = CreateSessionResponse::fromArray($cachedSession);
+            }
+        }
     }
 
     #[\Override]
@@ -119,7 +133,7 @@ final class BlueskyApi implements BlueskyApiInterface
 
     private function createSession(): CreateSessionResponse
     {
-        return new CreateSessionResponse($this->performXrpcCall(
+        $session = new CreateSessionResponse($this->performXrpcCall(
             'POST',
             'com.atproto.server.createSession',
             [],
@@ -130,6 +144,61 @@ final class BlueskyApi implements BlueskyApiInterface
             [],
             false
         ));
+
+        $this->saveSession($session);
+
+        return $session;
+    }
+
+    private function refreshSession(): void
+    {
+        $session = $this->getSession();
+
+        if ($session->getRefreshToken() === '') {
+            throw new AuthenticationErrorException('Unable to refresh session: no refresh token available');
+        }
+
+        $jsonBody = $this->performXrpcCall(
+            'POST',
+            'com.atproto.server.refreshSession',
+            [],
+            [],
+            [
+                'Authorization' => 'Bearer ' . $session->getRefreshToken(),
+            ],
+            false
+        );
+
+        $this->session = new CreateSessionResponse($jsonBody);
+        $this->saveSession($this->session);
+    }
+
+    private function canRefresh(): bool
+    {
+        return $this->session !== null && $this->session->getRefreshToken() !== '';
+    }
+
+    private function saveSession(CreateSessionResponse $session): void
+    {
+        if ($this->cache === null) {
+            return;
+        }
+
+        $this->cache->set($this->getCacheKey(), $session->toArray(), self::SESSION_TTL);
+    }
+
+    private function clearCachedSession(): void
+    {
+        if ($this->cache === null) {
+            return;
+        }
+
+        $this->cache->delete($this->getCacheKey());
+    }
+
+    private function getCacheKey(): string
+    {
+        return 'bluesky_session_' . $this->identifier;
     }
 
     /**
@@ -144,8 +213,12 @@ final class BlueskyApi implements BlueskyApiInterface
         array|string $body = [],
         array $headers = [],
         bool $authenticated = true,
-        bool $encodeBody = true
+        bool $encodeBody = true,
+        bool $retryOnUnauthorized = true
     ): \stdClass {
+        $originalBody = $body;
+        $originalHeaders = $headers;
+
         $uri = $this->baseUrl . 'xrpc/' . $method;
         if ($params) {
             $uri .= '?' . http_build_query($params);
@@ -184,8 +257,30 @@ final class BlueskyApi implements BlueskyApiInterface
         }
 
         if ($response->getStatusCode() === self::HTTP_UNAUTHORIZED) {
+            if ($authenticated && $retryOnUnauthorized && $this->canRefresh()) {
+                try {
+                    $this->refreshSession();
+                } catch (\Throwable $throwable) {
+                    $this->clearCachedSession();
+                    throw $throwable;
+                }
+
+                return $this->performXrpcCall(
+                    $httpMethod,
+                    $method,
+                    $params,
+                    $originalBody,
+                    $originalHeaders,
+                    $authenticated,
+                    $encodeBody,
+                    false
+                );
+            }
+
             throw new AuthenticationErrorException('Authentication failed: ' . (string) $response->getBody(), 401);
-        } elseif ($response->getStatusCode() != self::HTTP_OK) {
+        }
+
+        if ($response->getStatusCode() != self::HTTP_OK) {
             throw new HttpStatusCodeException('Received an HTTP error (' . $response->getStatusCode() . '): ' . (string) $response->getBody(), $response->getStatusCode());
         }
 
