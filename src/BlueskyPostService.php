@@ -8,8 +8,9 @@ use potibm\Bluesky\Embed\AspectRatio;
 use potibm\Bluesky\Embed\External;
 use potibm\Bluesky\Embed\Images;
 use potibm\Bluesky\Embed\Record;
-use potibm\Bluesky\Exception\FileNotFoundException;
 use potibm\Bluesky\Feed\Post;
+use potibm\Bluesky\Media\FileMediaSource;
+use potibm\Bluesky\Media\MediaSource;
 use potibm\Bluesky\Response\UploadBlobResponseInterface;
 use potibm\Bluesky\Richtext\FacetLink;
 use potibm\Bluesky\Richtext\FacetMention;
@@ -141,12 +142,24 @@ final class BlueskyPostService
         return $resultPost;
     }
 
-    public function addImage(Post $post, string $imageFile, string $altText, ?AspectRatio $aspectRatio = null): Post
+    /**
+     * @param string|MediaSource $imageFile a MediaSource, or a file path (deprecated)
+     */
+    public function addImage(Post $post, string|MediaSource $imageFile, string $altText, ?AspectRatio $aspectRatio = null): Post
     {
-        $blob = $this->createBlobFromFilename($imageFile);
+        if (is_string($imageFile)) {
+            trigger_error(
+                'Passing a file path string is deprecated. Use FileMediaSource instead.',
+                E_USER_DEPRECATED
+            );
+
+            return $this->addImage($post, new FileMediaSource($imageFile), $altText, $aspectRatio);
+        }
+
+        $blob = $this->uploadMediaSource($imageFile);
 
         if ($aspectRatio === null) {
-            $size = @getimagesize($imageFile);
+            $size = @getimagesizefromstring($imageFile->getData());
             if ($size !== false) {
                 $aspectRatio = new AspectRatio($size[0], $size[1]);
             }
@@ -163,12 +176,24 @@ final class BlueskyPostService
         return $resultPost;
     }
 
-    public function addWebsiteCard(Post $post, string $uri, string $title, string $description, ?string $imageFile = null): Post
+    /**
+     * @param string|MediaSource|null $imageFile a MediaSource, or a file path (deprecated)
+     */
+    public function addWebsiteCard(Post $post, string $uri, string $title, string $description, string|MediaSource|null $imageFile = null): Post
     {
+        if (is_string($imageFile)) {
+            trigger_error(
+                'Passing a file path string is deprecated. Use FileMediaSource instead.',
+                E_USER_DEPRECATED
+            );
+
+            return $this->addWebsiteCard($post, $uri, $title, $description, new FileMediaSource($imageFile));
+        }
+
         $resultPost = clone $post;
 
         if ($imageFile !== null) {
-            $blob = $this->createBlobFromFilename($imageFile);
+            $blob = $this->uploadMediaSource($imageFile);
         } else {
             $blob = null;
         }
@@ -179,25 +204,11 @@ final class BlueskyPostService
         return $resultPost;
     }
 
-    private function createBlobFromFilename(string $imageFile): UploadBlobResponseInterface
+    private function uploadMediaSource(MediaSource $source): UploadBlobResponseInterface
     {
-        if (! file_exists($imageFile)) {
-            throw new FileNotFoundException('File not found: ' . $imageFile);
-        }
-
-        $fileContents = @file_get_contents($imageFile);
-        if ($fileContents === false) {
-            throw new FileNotFoundException('Unable to read file: ' . $imageFile);
-        }
-
-        $fileMimeType = @mime_content_type($imageFile);
-        if ($fileMimeType === false) {
-            throw new FileNotFoundException('Unable to determine mime type for file: ' . $imageFile);
-        }
-
         return $this->blueskyClient->uploadBlob(
-            $fileContents,
-            $fileMimeType
+            $source->getData(),
+            $source->getMimeType()
         );
     }
 }

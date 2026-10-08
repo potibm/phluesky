@@ -50,27 +50,47 @@ $post = $postService->addFacetsFromMentionsAndLinksAndTags($post);
 
 [https://atproto.com/blog/create-post#images-embeds](https://atproto.com/blog/create-post#images-embeds)
 
+Images are provided through a `MediaSource`. Use `FileMediaSource` to read from
+disk, or `BlobMediaSource` to upload binary data already held in memory.
+
 ```php
+use potibm\Bluesky\Media\FileMediaSource;
+use potibm\Bluesky\Media\BlobMediaSource;
+
 $post = \potibm\Bluesky\Feed\Post::create('example post with image attached');
+
+// from a file path
 $post = $postService->addImage(
-    $post, 
-    'image.jpg', 
+    $post,
+    new FileMediaSource('image.jpg'),
+    'alt text'
+);
+
+// from in-memory binary data
+$post = $postService->addImage(
+    $post,
+    new BlobMediaSource($imageData, 'image/jpeg'),
     'alt text'
 );
 ```
+
+> Passing a file path string (e.g. `$postService->addImage($post, 'image.jpg', 'alt text')`)
+> is deprecated and will be removed in a future version. Use `FileMediaSource` instead.
 
 ### Adding website card embeds
 
 [https://atproto.com/blog/create-post#website-card-embeds](https://atproto.com/blog/create-post#website-card-embeds)
 
 ```php
+use potibm\Bluesky\Media\FileMediaSource;
+
 $post = \potibm\Bluesky\Feed\Post::create('post which embeds an external URL as a card');
 $post = $postService->addWebsiteCard(
     $post, 
     'https://example.com', 
     'Example website', 
     'Example website description',
-    'optionalimage.jpg'
+    new FileMediaSource('optionalimage.jpg')
 );
 ```
 
