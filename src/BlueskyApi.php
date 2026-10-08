@@ -13,6 +13,7 @@ use potibm\Bluesky\Response\CreateSessionResponse;
 use potibm\Bluesky\Response\RecordResponse;
 use potibm\Bluesky\Response\UploadBlobResponse;
 use Psr\Http\Client\ClientExceptionInterface;
+use Psr\Http\Message\RequestInterface;
 use Psr\SimpleCache\CacheInterface;
 
 final class BlueskyApi implements BlueskyApiInterface
@@ -30,6 +31,8 @@ final class BlueskyApi implements BlueskyApiInterface
     private const SESSION_TTL = 60 * 24 * 60 * 60;
 
     private ?CreateSessionResponse $session = null;
+
+    private bool $isRetrying = false;
 
     public function __construct(
         private string $identifier,
@@ -213,12 +216,66 @@ final class BlueskyApi implements BlueskyApiInterface
         array|string $body = [],
         array $headers = [],
         bool $authenticated = true,
-        bool $encodeBody = true,
-        bool $retryOnUnauthorized = true
+        bool $encodeBody = true
     ): \stdClass {
-        $originalBody = $body;
-        $originalHeaders = $headers;
+        $request = $this->buildRequest($httpMethod, $method, $params, $body, $headers, $authenticated, $encodeBody);
 
+        try {
+            $response = $this->options->httpClient->sendRequest($request);
+        } catch (ClientExceptionInterface $e) {
+            // Handle network or HTTP client errors
+            throw new HttpRequestException('Failed to send the request: ' . $e->getMessage());
+        }
+
+        $statusCode = $response->getStatusCode();
+
+        if ($statusCode === self::HTTP_UNAUTHORIZED) {
+            if ($authenticated && ! $this->isRetrying && $this->canRefresh()) {
+                $this->isRetrying = true;
+
+                try {
+                    $this->refreshSession();
+
+                    return $this->performXrpcCall($httpMethod, $method, $params, $body, $headers, $authenticated, $encodeBody);
+                } catch (\Throwable $throwable) {
+                    $this->clearCachedSession();
+                    throw $throwable;
+                } finally {
+                    $this->isRetrying = false;
+                }
+            }
+
+            throw new AuthenticationErrorException('Authentication failed: ' . (string) $response->getBody(), 401);
+        }
+
+        if ($statusCode != self::HTTP_OK) {
+            throw new HttpStatusCodeException('Received an HTTP error (' . $statusCode . '): ' . (string) $response->getBody(), $statusCode);
+        }
+
+        $jsonBody = json_decode((string) $response->getBody(), false);
+
+        if ($jsonBody === null) {
+            // Handle JSON decoding errors
+            throw new InvalidPayloadException('Failed to decode JSON response');
+        }
+
+        return $jsonBody;
+    }
+
+    /**
+     * @param (mixed|string)[]|string $body
+     *
+     * @psalm-param array{repo?: string, collection?: 'app.bsky.feed.post', record?: mixed, identifier?: string, password?: string}|string $body
+     */
+    private function buildRequest(
+        string $httpMethod,
+        string $method,
+        array $params,
+        array|string $body,
+        array $headers,
+        bool $authenticated,
+        bool $encodeBody
+    ): RequestInterface {
         $uri = $this->baseUrl . 'xrpc/' . $method;
         if ($params) {
             $uri .= '?' . http_build_query($params);
@@ -249,48 +306,6 @@ final class BlueskyApi implements BlueskyApiInterface
             $request = $request->withBody($bodyObject);
         }
 
-        try {
-            $response = $this->options->httpClient->sendRequest($request);
-        } catch (ClientExceptionInterface $e) {
-            // Handle network or HTTP client errors
-            throw new HttpRequestException('Failed to send the request: ' . $e->getMessage());
-        }
-
-        if ($response->getStatusCode() === self::HTTP_UNAUTHORIZED) {
-            if ($authenticated && $retryOnUnauthorized && $this->canRefresh()) {
-                try {
-                    $this->refreshSession();
-                } catch (\Throwable $throwable) {
-                    $this->clearCachedSession();
-                    throw $throwable;
-                }
-
-                return $this->performXrpcCall(
-                    $httpMethod,
-                    $method,
-                    $params,
-                    $originalBody,
-                    $originalHeaders,
-                    $authenticated,
-                    $encodeBody,
-                    false
-                );
-            }
-
-            throw new AuthenticationErrorException('Authentication failed: ' . (string) $response->getBody(), 401);
-        }
-
-        if ($response->getStatusCode() != self::HTTP_OK) {
-            throw new HttpStatusCodeException('Received an HTTP error (' . $response->getStatusCode() . '): ' . (string) $response->getBody(), $response->getStatusCode());
-        }
-
-        $jsonBody = json_decode((string) $response->getBody(), false);
-
-        if ($jsonBody === null) {
-            // Handle JSON decoding errors
-            throw new InvalidPayloadException('Failed to decode JSON response');
-        }
-
-        return $jsonBody;
+        return $request;
     }
 }
