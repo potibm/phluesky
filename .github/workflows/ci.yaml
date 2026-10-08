@@ -7,7 +7,7 @@ on:
 
 jobs:
   run:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     strategy:
       fail-fast: false
       matrix:
@@ -15,6 +15,8 @@ jobs:
           - '8.2'
           - '8.3'
           - '8.4'
+          - '8.5'
+          - '8.6'
         minimum_versions: [false]
         coverage: ['none']
         include:
@@ -24,19 +26,21 @@ jobs:
           - description: 'Log Code Coverage'
             php: '8.2'
             coverage: 'xdebug'
+          - php: '8.6'
+            experimental: true
 
     name: PHP ${{ matrix.php }} ${{ matrix.description }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: actions/cache@v5
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.composer/cache/files
           key: ${{ matrix.php }}
 
       - name: Setup PHP
-        uses: shivammathur/setup-php@v2
+        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # 2.37.2
         with:
           php-version: ${{ matrix.php }}
           coverage: ${{ matrix.coverage }}
@@ -44,23 +48,28 @@ jobs:
       - name: Install dependencies
         run: composer install
         if: matrix.minimum_versions == false
+        continue-on-error: ${{ matrix.experimental == true }}
 
       - name: Install dependencies lower
         run: composer update --no-interaction --prefer-lowest
         if: matrix.minimum_versions == true
+        continue-on-error: ${{ matrix.experimental == true }}
 
       - name: Run PHPUnit tests
         run: vendor/bin/phpunit
         if: matrix.coverage == 'none'
+        continue-on-error: ${{ matrix.experimental == true }}
 
       - name: PHPUnit tests and Log Code coverage
         run: ./vendor/bin/phpunit --exclude-group proxy --coverage-clover=coverage.xml
         if: matrix.coverage == 'xdebug'
+        continue-on-error: ${{ matrix.experimental == true }}
 
       - name: Run codecov
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
         if: matrix.coverage == 'xdebug'
+        continue-on-error: ${{ matrix.experimental == true }}
         with:
-          file: './coverage.xml'
+          files: './coverage.xml'
           token: ${{ secrets.CODECOV_TOKEN }}
           fail_ci_if_error: true
