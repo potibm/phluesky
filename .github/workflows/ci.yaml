@@ -50,8 +50,10 @@ jobs:
         if: matrix.minimum_versions == false
         continue-on-error: ${{ matrix.experimental == true }}
 
+      # composer.lock is gitignored (library convention); --prefer-lowest intentionally
+      # resolves the lowest allowed dependency bounds, so versions are not lock-pinned here.
       - name: Install dependencies lower
-        run: composer update --no-interaction --prefer-lowest
+        run: composer update --no-interaction --prefer-lowest # NOSONAR
         if: matrix.minimum_versions == true
         continue-on-error: ${{ matrix.experimental == true }}
 
