@@ -4,26 +4,20 @@ declare(strict_types=1);
 
 use PhpCsFixer\Fixer\Import\NoUnusedImportsFixer;
 use Symplify\EasyCodingStandard\Config\ECSConfig;
-use Symplify\EasyCodingStandard\ValueObject\Set\SetList;
 
-return function (ECSConfig $ecsConfig): void {
-    $ecsConfig->paths([
+return ECSConfig::configure()
+    ->withPaths([
         __DIR__ . '/src',
         __DIR__ . '/tests',
-    ]);
-
-    // this way you add a single rule
-    $ecsConfig->rules([
+    ])
+    ->withRules([
         NoUnusedImportsFixer::class,
-    ]);
-
-    // this way you can add sets - group of rules
-    $ecsConfig->sets([
-        SetList::SPACES,
-        SetList::ARRAY,
-        SetList::DOCBLOCK,
-        SetList::NAMESPACES,
-        SetList::COMMENTS,
-        SetList::PSR_12,
-    ]);
-};
+    ])
+    ->withPreparedSets(
+        spaces: true,
+        arrays: true,
+        docblocks: true,
+        namespaces: true,
+        comments: true,
+        psr12: true,
+    );

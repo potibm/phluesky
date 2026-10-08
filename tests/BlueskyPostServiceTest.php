@@ -58,9 +58,7 @@ final class BlueskyPostServiceTest extends TestCase
 
         $this->assertCount(1, $resultPost->getFacets());
         $this->assertInstanceOf(FacetMention::class, $resultPost->getFacets()[0]);
-        /**
-         * @var FacetMention $firstFacet
-         */
+        /** @var FacetMention $firstFacet */
         $firstFacet = $resultPost->getFacets()[0];
         $this->assertEquals('did:plc:ewvi7nxzyoun6zhxrhs64oiz', $firstFacet->getDid());
         $this->assertEquals(23, $firstFacet->getStart());
@@ -74,9 +72,7 @@ final class BlueskyPostServiceTest extends TestCase
 
         $this->assertCount(1, $resultPost->getFacets());
         $this->assertInstanceOf(FacetLink::class, $resultPost->getFacets()[0]);
-        /**
-         * @var FacetLink $firstFacet
-         */
+        /** @var FacetLink $firstFacet */
         $firstFacet = $resultPost->getFacets()[0];
         $this->assertEquals('https://en.wikipedia.org/wiki/CBOR', $firstFacet->getUri());
         $this->assertEquals(74, $firstFacet->getStart());
@@ -90,9 +86,7 @@ final class BlueskyPostServiceTest extends TestCase
 
         $this->assertCount(1, $resultPost->getFacets());
         $this->assertInstanceOf(FacetTag::class, $resultPost->getFacets()[0]);
-        /**
-         * @var FacetTag $firstFacet
-         */
+        /** @var FacetTag $firstFacet */
         $firstFacet = $resultPost->getFacets()[0];
         $this->assertEquals('HashtagFun', $firstFacet->getTag());
         $this->assertEquals(116, $firstFacet->getStart());
@@ -133,7 +127,6 @@ final class BlueskyPostServiceTest extends TestCase
     public function testAddImageWithoutAspectRatio(): void
     {
         /** @psalm-suppress PossiblyNullArgument, PossiblyNullReference */
-
         $root = vfsStream::setup('root');
         $file = vfsStream::newFile('image.png')->at($root);
         $file->setContent(base64_decode(
