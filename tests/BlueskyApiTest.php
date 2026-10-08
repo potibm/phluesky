@@ -226,7 +226,7 @@ final class BlueskyApiTest extends TestCase
         $cache->method('get')->willReturn(null);
         $cache->expects($this->once())
             ->method('set')
-            ->with('bluesky_session_identifier', $this->isArray(), $this->isInt());
+            ->with($this->cacheKey(), $this->isArray(), $this->isInt());
 
         $httpComponent = $this->generateHttpComponentsManagerFromResponses([
             [
@@ -302,7 +302,7 @@ final class BlueskyApiTest extends TestCase
             'refreshJwt' => 'refreshToken',
             'handle' => 'handle',
         ]);
-        $cache->expects($this->once())->method('delete')->with('bluesky_session_identifier');
+        $cache->expects($this->once())->method('delete')->with($this->cacheKey());
 
         $httpComponent = $this->generateHttpComponentsManagerFromResponses([
             [
@@ -322,6 +322,152 @@ final class BlueskyApiTest extends TestCase
 
         $this->expectException(AuthenticationErrorException::class);
         $api->createRecord(Post::create('Test for a post'));
+    }
+
+    public function testCreatesNewSessionAfterRefreshFailure(): void
+    {
+        $cache = $this->createMock(CacheInterface::class);
+        $cache->method('get')->willReturn([
+            'accessJwt' => 'expiredToken',
+            'did' => 'did:bluesky:1234567890',
+            'refreshJwt' => 'refreshToken',
+            'handle' => 'handle',
+        ]);
+        $cache->expects($this->once())->method('delete');
+
+        $httpComponent = $this->generateHttpComponentsManagerFromResponses([
+            [
+                'status' => 401,
+                'body' => [
+                    'error' => 'ExpiredToken',
+                ],
+            ],
+            [
+                'status' => 401,
+                'body' => [
+                    'error' => 'InvalidToken',
+                ],
+            ],
+            [
+                'status' => 200,
+                'body' => [
+                    'accessJwt' => 'newToken',
+                    'did' => 'did:bluesky:1234567890',
+                    'refreshJwt' => 'newRefresh',
+                    'handle' => 'handle',
+                ],
+            ],
+            [
+                'status' => 200,
+                'body' => [
+                    'uri' => 'my-uri',
+                    'cid' => 'cid:1234567890',
+                ],
+            ],
+        ]);
+        $api = new BlueskyApi('identifier', 'password', $httpComponent, cache: $cache);
+
+        try {
+            $api->createRecord(Post::create('First post'));
+            $this->fail('Expected AuthenticationErrorException');
+        } catch (AuthenticationErrorException) {
+            // The dead session was discarded; the next call starts a fresh login.
+        }
+
+        $response = $api->createRecord(Post::create('Second post'));
+
+        $this->assertEquals('my-uri', $response->getUri()->getUri());
+    }
+
+    public function testIgnoresCorruptCachedSession(): void
+    {
+        $cache = $this->createMock(CacheInterface::class);
+        $cache->method('get')->willReturn([
+            'unexpected' => 'value',
+        ]);
+        $cache->expects($this->once())->method('delete')->with($this->cacheKey());
+
+        $httpComponent = $this->generateHttpComponentsManagerFromResponses([
+            [
+                'status' => 200,
+                'body' => [
+                    'accessJwt' => 'token',
+                    'did' => 'did:bluesky:1234567890',
+                    'refreshJwt' => 'refresh',
+                    'handle' => 'handle',
+                ],
+            ],
+            [
+                'status' => 200,
+                'body' => [
+                    'uri' => 'my-uri',
+                    'cid' => 'cid:1234567890',
+                ],
+            ],
+        ]);
+        $api = new BlueskyApi('identifier', 'password', $httpComponent, cache: $cache);
+
+        $response = $api->createRecord(Post::create('Test for a post'));
+
+        $this->assertEquals('my-uri', $response->getUri()->getUri());
+    }
+
+    public function testSupportsEmailIdentifierInCacheKey(): void
+    {
+        $cache = new Psr16Cache(new ArrayAdapter());
+
+        $httpComponent = $this->generateHttpComponentsManagerFromResponses([
+            [
+                'status' => 200,
+                'body' => [
+                    'accessJwt' => 'token',
+                    'did' => 'did:bluesky:1234567890',
+                    'refreshJwt' => 'refresh',
+                    'handle' => 'handle',
+                ],
+            ],
+            [
+                'status' => 200,
+                'body' => [
+                    'uri' => 'my-uri',
+                    'cid' => 'cid:1234567890',
+                ],
+            ],
+        ]);
+        $api = new BlueskyApi('user@example.com', 'password', $httpComponent, cache: $cache);
+
+        $response = $api->createRecord(Post::create('Test for a post'));
+
+        $this->assertEquals('my-uri', $response->getUri()->getUri());
+    }
+
+    public function testSupportsDidIdentifierInCacheKey(): void
+    {
+        $cache = new Psr16Cache(new ArrayAdapter());
+
+        $httpComponent = $this->generateHttpComponentsManagerFromResponses([
+            [
+                'status' => 200,
+                'body' => [
+                    'accessJwt' => 'token',
+                    'did' => 'did:bluesky:1234567890',
+                    'refreshJwt' => 'refresh',
+                    'handle' => 'handle',
+                ],
+            ],
+            [
+                'status' => 200,
+                'body' => [
+                    'uri' => 'my-uri',
+                    'cid' => 'cid:1234567890',
+                ],
+            ],
+        ]);
+        $api = new BlueskyApi('did:plc:abcdef123456', 'password', $httpComponent, cache: $cache);
+
+        $response = $api->createRecord(Post::create('Test for a post'));
+
+        $this->assertEquals('my-uri', $response->getUri()->getUri());
     }
 
     public function testReusesSessionStoredInPsr16Cache(): void
@@ -365,6 +511,11 @@ final class BlueskyApiTest extends TestCase
         $response = $secondApi->createRecord(Post::create('Second post'));
 
         $this->assertEquals('second-uri', $response->getUri()->getUri());
+    }
+
+    private function cacheKey(string $identifier = 'identifier'): string
+    {
+        return hash('sha256', 'bluesky_session_' . $identifier);
     }
 
     private function generateHttpComponentsManager(int $statusCode, bool $jsonEncode, array|string|\stdClass ...$bodies): HttpComponentsManager

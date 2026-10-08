@@ -44,7 +44,11 @@ final class BlueskyApi implements BlueskyApiInterface
         if ($this->cache !== null) {
             $cachedSession = $this->cache->get($this->getCacheKey());
             if (is_array($cachedSession)) {
-                $this->session = CreateSessionResponse::fromArray($cachedSession);
+                try {
+                    $this->session = CreateSessionResponse::fromArray($cachedSession);
+                } catch (InvalidPayloadException) {
+                    $this->cache->delete($this->getCacheKey());
+                }
             }
         }
     }
@@ -201,7 +205,10 @@ final class BlueskyApi implements BlueskyApiInterface
 
     private function getCacheKey(): string
     {
-        return 'bluesky_session_' . $this->identifier;
+        // PSR-16 keys are limited to [A-Za-z0-9_.] and 64 characters, but Bluesky
+        // identifiers may be an email or a DID (e.g. "did:plc:...") containing
+        // reserved characters. Hash the key to stay within the PSR-16 constraints.
+        return hash('sha256', 'bluesky_session_' . $this->identifier);
     }
 
     /**
@@ -238,6 +245,7 @@ final class BlueskyApi implements BlueskyApiInterface
 
                     return $this->performXrpcCall($httpMethod, $method, $params, $body, $headers, $authenticated, $encodeBody);
                 } catch (\Throwable $throwable) {
+                    $this->session = null;
                     $this->clearCachedSession();
                     throw $throwable;
                 } finally {
