@@ -147,11 +147,19 @@ final class BlueskyPostService
      */
     public function addImage(Post $post, string|MediaSource $imageFile, string $altText, ?AspectRatio $aspectRatio = null): Post
     {
-        $imageSource = $this->resolveMediaSource($imageFile);
-        $blob = $this->uploadMediaSource($imageSource);
+        if (is_string($imageFile)) {
+            trigger_error(
+                'Passing a file path string is deprecated. Use FileMediaSource instead.',
+                E_USER_DEPRECATED
+            );
+
+            return $this->addImage($post, new FileMediaSource($imageFile), $altText, $aspectRatio);
+        }
+
+        $blob = $this->uploadMediaSource($imageFile);
 
         if ($aspectRatio === null) {
-            $size = @getimagesizefromstring($imageSource->getData());
+            $size = @getimagesizefromstring($imageFile->getData());
             if ($size !== false) {
                 $aspectRatio = new AspectRatio($size[0], $size[1]);
             }
@@ -173,10 +181,19 @@ final class BlueskyPostService
      */
     public function addWebsiteCard(Post $post, string $uri, string $title, string $description, string|MediaSource|null $imageFile = null): Post
     {
+        if (is_string($imageFile)) {
+            trigger_error(
+                'Passing a file path string is deprecated. Use FileMediaSource instead.',
+                E_USER_DEPRECATED
+            );
+
+            return $this->addWebsiteCard($post, $uri, $title, $description, new FileMediaSource($imageFile));
+        }
+
         $resultPost = clone $post;
 
         if ($imageFile !== null) {
-            $blob = $this->uploadMediaSource($this->resolveMediaSource($imageFile));
+            $blob = $this->uploadMediaSource($imageFile);
         } else {
             $blob = null;
         }
@@ -185,23 +202,6 @@ final class BlueskyPostService
         $resultPost->setEmbed($card);
 
         return $resultPost;
-    }
-
-    /**
-     * @param string|MediaSource $source a MediaSource, or a file path (deprecated)
-     */
-    private function resolveMediaSource(string|MediaSource $source): MediaSource
-    {
-        if (is_string($source)) {
-            trigger_error(
-                'Passing a file path string is deprecated. Use FileMediaSource instead.',
-                E_USER_DEPRECATED
-            );
-
-            return new FileMediaSource($source);
-        }
-
-        return $source;
     }
 
     private function uploadMediaSource(MediaSource $source): UploadBlobResponseInterface

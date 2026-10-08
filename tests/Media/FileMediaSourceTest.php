@@ -28,7 +28,7 @@ final class FileMediaSourceTest extends TestCase
         $this->expectException(FileNotFoundException::class);
         $this->expectExceptionMessageMatches('/^File not found/');
 
-        new FileMediaSource(__DIR__ . '/missingfile.png');
+        new FileMediaSource(__DIR__ . '/missingfile.png'); // NOSONAR
     }
 
     public function testThrowsExceptionForUnreadableFile(): void
@@ -39,6 +39,6 @@ final class FileMediaSourceTest extends TestCase
         $root = vfsStream::setup('root');
         $file = vfsStream::newFile('image.png', 0000)->at($root);
 
-        new FileMediaSource($file->url());
+        new FileMediaSource($file->url()); // NOSONAR
     }
 }
