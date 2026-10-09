@@ -17,13 +17,17 @@ use potibm\Bluesky\Exception\HttpStatusCodeException;
 use potibm\Bluesky\Exception\InvalidPayloadException;
 use potibm\Bluesky\Feed\Post;
 use potibm\Bluesky\HttpComponentsManager;
+use potibm\Bluesky\Identity\DidDocument;
 use potibm\Bluesky\Response\CreateSessionResponse;
 use potibm\Bluesky\Response\RecordResponse;
 use potibm\Bluesky\Response\UploadBlobResponse;
+use potibm\Bluesky\Response\VideoJobStatusResponse;
 use potibm\Bluesky\Test\Response\RecordResponseTest;
 use potibm\Bluesky\Test\Response\UploadBlobResponseTest;
+use potibm\Bluesky\Test\Response\VideoJobStatusResponseTest;
 use Psr\Http\Client\ClientExceptionInterface;
 use Psr\Http\Client\ClientInterface;
+use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\UriFactoryInterface;
 use Psr\SimpleCache\CacheInterface;
@@ -38,6 +42,8 @@ use Symfony\Component\Cache\Psr16Cache;
 #[UsesClass(Images::class)]
 #[UsesClass(UploadBlobResponse::class)]
 #[UsesClass(BlueskyUri::class)]
+#[UsesClass(VideoJobStatusResponse::class)]
+#[UsesClass(DidDocument::class)]
 final class BlueskyApiTest extends TestCase
 {
     public function testGetDidForHandle(): void
@@ -192,6 +198,267 @@ final class BlueskyApiTest extends TestCase
         $response = $api->getRecord(new BlueskyUri('at://did:plc:u5cwb2mwiv2bfq53cjufe6yn/app.bsky.feed.post/3k4duaz5vfs2b'));
 
         $this->assertInstanceOf(RecordResponse::class, $response);
+    }
+
+    public function testGetServiceAuth(): void
+    {
+        $httpComponent = $this->generateHttpComponentsManagerFromResponses([
+            [
+                'status' => 200,
+                'body' => [
+                    'accessJwt' => 'accessJwt',
+                    'did' => 'did:plc:1234567890',
+                    'refreshJwt' => 'refresh',
+                    'handle' => 'handle',
+                ],
+            ],
+            [
+                'status' => 200,
+                'body' => self::generateDidDocument(),
+            ],
+            [
+                'status' => 200,
+                'body' => [
+                    'token' => 'service-token',
+                ],
+            ],
+        ]);
+        $api = new BlueskyApi('identifier', 'password', $httpComponent);
+
+        $this->assertEquals('service-token', $api->getServiceAuth('com.atproto.repo.uploadBlob'));
+    }
+
+    public function testGetServiceAuthUsesPdsDidAsAudience(): void
+    {
+        $psr17Factory = new Psr17Factory();
+        $requests = [];
+
+        $responseSpecs = [
+            [
+                'status' => 200,
+                'body' => [
+                    'accessJwt' => 'accessJwt',
+                    'did' => 'did:plc:user',
+                    'refreshJwt' => 'refresh',
+                    'handle' => 'handle',
+                ],
+            ],
+            [
+                'status' => 200,
+                'body' => self::generateDidDocument(),
+            ],
+            [
+                'status' => 200,
+                'body' => [
+                    'token' => 'service-token',
+                ],
+            ],
+        ];
+
+        $responseMocks = [];
+        foreach ($responseSpecs as $spec) {
+            $response = $this->createMock(ResponseInterface::class);
+            $response->method('getStatusCode')->willReturn($spec['status']);
+            /** @psalm-suppress PossiblyFalseArgument */
+            $response->method('getBody')->willReturn($psr17Factory->createStream(json_encode($spec['body'])));
+            $responseMocks[] = $response;
+        }
+
+        $httpClient = $this->createMock(ClientInterface::class);
+        $httpClient->method('sendRequest')->willReturnCallback(
+            function (RequestInterface $request) use (&$requests, &$responseMocks): ResponseInterface {
+                $requests[] = $request;
+
+                $response = array_shift($responseMocks);
+                if (! $response instanceof ResponseInterface) {
+                    throw new \RuntimeException('No more mocked responses available');
+                }
+
+                return $response;
+            }
+        );
+
+        $httpComponent = new HttpComponentsManager($httpClient, $psr17Factory, $psr17Factory, $psr17Factory);
+        $api = new BlueskyApi('identifier', 'password', $httpComponent);
+
+        $api->getServiceAuth('com.atproto.repo.uploadBlob');
+
+        $this->assertStringContainsString(
+            'plc.directory/did:plc:user',
+            (string) $requests[1]->getUri()
+        );
+        $this->assertStringContainsString(
+            'aud=' . rawurlencode('did:web:morel.us-east.host.bsky.network'),
+            (string) $requests[2]->getUri()
+        );
+    }
+
+    public function testGetServiceAuthMissingPdsService(): void
+    {
+        $httpComponent = $this->generateHttpComponentsManagerFromResponses([
+            [
+                'status' => 200,
+                'body' => [
+                    'accessJwt' => 'accessJwt',
+                    'did' => 'did:plc:1234567890',
+                    'refreshJwt' => 'refresh',
+                    'handle' => 'handle',
+                ],
+            ],
+            [
+                'status' => 200,
+                'body' => [
+                    'id' => 'did:plc:1234567890',
+                    'service' => [],
+                ],
+            ],
+        ]);
+        $api = new BlueskyApi('identifier', 'password', $httpComponent);
+
+        $this->expectException(InvalidPayloadException::class);
+        $api->getServiceAuth('com.atproto.repo.uploadBlob');
+    }
+
+    public function testGetServiceAuthWithCustomAudience(): void
+    {
+        $httpComponent = $this->generateHttpComponentsManagerFromResponses([
+            [
+                'status' => 200,
+                'body' => [
+                    'accessJwt' => 'accessJwt',
+                    'did' => 'did:bluesky:1234567890',
+                    'refreshJwt' => 'refresh',
+                    'handle' => 'handle',
+                ],
+            ],
+            [
+                'status' => 200,
+                'body' => [
+                    'token' => 'custom-token',
+                ],
+            ],
+        ]);
+        $api = new BlueskyApi('identifier', 'password', $httpComponent);
+
+        $this->assertEquals(
+            'custom-token',
+            $api->getServiceAuth('app.bsky.video.uploadVideo', 60, 'did:web:example.com')
+        );
+    }
+
+    public function testGetServiceAuthMissingToken(): void
+    {
+        $httpComponent = $this->generateHttpComponentsManagerFromResponses([
+            [
+                'status' => 200,
+                'body' => [
+                    'accessJwt' => 'accessJwt',
+                    'did' => 'did:plc:1234567890',
+                    'refreshJwt' => 'refresh',
+                    'handle' => 'handle',
+                ],
+            ],
+            [
+                'status' => 200,
+                'body' => self::generateDidDocument(),
+            ],
+            [
+                'status' => 200,
+                'body' => [
+                    'unexpected' => 'value',
+                ],
+            ],
+        ]);
+        $api = new BlueskyApi('identifier', 'password', $httpComponent);
+
+        $this->expectException(InvalidPayloadException::class);
+        $api->getServiceAuth('com.atproto.repo.uploadBlob');
+    }
+
+    public function testUploadVideo(): void
+    {
+        $httpComponent = $this->generateHttpComponentsManagerFromResponses([
+            [
+                'status' => 200,
+                'body' => [
+                    'accessJwt' => 'accessJwt',
+                    'did' => 'did:bluesky:1234567890',
+                    'refreshJwt' => 'refresh',
+                    'handle' => 'handle',
+                ],
+            ],
+            [
+                'status' => 200,
+                'body' => [
+                    'jobStatus' => VideoJobStatusResponseTest::generateJobStatus('JOB_STATE_COMPLETED'),
+                ],
+            ],
+        ]);
+        $api = new BlueskyApi('identifier', 'password', $httpComponent);
+
+        $status = $api->uploadVideo('video-data', 'clip.mp4', 'video/mp4', 'service-token');
+
+        $this->assertEquals('job-123', $status->getJobId());
+        $this->assertEquals('JOB_STATE_COMPLETED', $status->getState());
+        $this->assertNotNull($status->getBlob());
+    }
+
+    public function testUploadVideoWithHttpError(): void
+    {
+        $httpComponent = $this->generateHttpComponentsManagerFromResponses([
+            [
+                'status' => 200,
+                'body' => [
+                    'accessJwt' => 'accessJwt',
+                    'did' => 'did:bluesky:1234567890',
+                    'refreshJwt' => 'refresh',
+                    'handle' => 'handle',
+                ],
+            ],
+            [
+                'status' => 400,
+                'body' => [
+                    'error' => 'BadRequest',
+                ],
+            ],
+        ]);
+        $api = new BlueskyApi('identifier', 'password', $httpComponent);
+
+        $this->expectException(HttpStatusCodeException::class);
+        $api->uploadVideo('video-data', 'clip.mp4', 'video/mp4', 'service-token');
+    }
+
+    public function testGetVideoJobStatus(): void
+    {
+        $httpComponent = $this->generateHttpComponentsManagerFromResponses([
+            [
+                'status' => 200,
+                'body' => [
+                    'jobStatus' => VideoJobStatusResponseTest::generateJobStatus('JOB_STATE_PROCESSING'),
+                ],
+            ],
+        ]);
+        $api = new BlueskyApi('identifier', 'password', $httpComponent);
+
+        $status = $api->getVideoJobStatus('job-123');
+
+        $this->assertEquals('job-123', $status->getJobId());
+        $this->assertEquals('JOB_STATE_PROCESSING', $status->getState());
+    }
+
+    public function testGetVideoJobStatusInvalidPayload(): void
+    {
+        $httpComponent = $this->generateHttpComponentsManagerFromResponses([
+            [
+                'status' => 200,
+                'body' => 'not-json',
+                'jsonEncode' => false,
+            ],
+        ]);
+        $api = new BlueskyApi('identifier', 'password', $httpComponent);
+
+        $this->expectException(InvalidPayloadException::class);
+        $api->getVideoJobStatus('job-123');
     }
 
     public function testReusesCachedSession(): void
@@ -516,6 +783,20 @@ final class BlueskyApiTest extends TestCase
     private function cacheKey(string $identifier = 'identifier'): string
     {
         return hash('sha256', 'bluesky_session_' . $identifier);
+    }
+
+    private static function generateDidDocument(): \stdClass
+    {
+        $service = new \stdClass();
+        $service->id = '#atproto_pds';
+        $service->type = 'AtprotoPersonalDataServer';
+        $service->serviceEndpoint = 'https://morel.us-east.host.bsky.network';
+
+        $document = new \stdClass();
+        $document->id = 'did:plc:1234567890';
+        $document->service = [$service];
+
+        return $document;
     }
 
     private function generateHttpComponentsManager(int $statusCode, bool $jsonEncode, array|string|\stdClass ...$bodies): HttpComponentsManager
