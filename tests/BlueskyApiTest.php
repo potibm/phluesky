@@ -18,6 +18,7 @@ use potibm\Bluesky\Exception\InvalidPayloadException;
 use potibm\Bluesky\Feed\Post;
 use potibm\Bluesky\HttpComponentsManager;
 use potibm\Bluesky\Identity\DidDocument;
+use potibm\Bluesky\Identity\DidResolver;
 use potibm\Bluesky\Response\CreateSessionResponse;
 use potibm\Bluesky\Response\RecordResponse;
 use potibm\Bluesky\Response\UploadBlobResponse;
@@ -44,6 +45,7 @@ use Symfony\Component\Cache\Psr16Cache;
 #[UsesClass(BlueskyUri::class)]
 #[UsesClass(VideoJobStatusResponse::class)]
 #[UsesClass(DidDocument::class)]
+#[UsesClass(DidResolver::class)]
 final class BlueskyApiTest extends TestCase
 {
     public function testGetDidForHandle(): void
@@ -271,7 +273,7 @@ final class BlueskyApiTest extends TestCase
 
                 $response = array_shift($responseMocks);
                 if (! $response instanceof ResponseInterface) {
-                    throw new \RuntimeException('No more mocked responses available');
+                    throw new \OutOfBoundsException('No more mocked responses available');
                 }
 
                 return $response;

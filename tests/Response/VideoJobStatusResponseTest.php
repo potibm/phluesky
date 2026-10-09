@@ -76,13 +76,16 @@ final class VideoJobStatusResponseTest extends TestCase
 
     public function testMissingRequiredProperty(): void
     {
-        $this->expectException(InvalidPayloadException::class);
-
         $jobStatus = new \stdClass();
         $jobStatus->jobId = 'job-123';
         $jobStatus->did = 'did:plc:1234567890';
 
-        new VideoJobStatusResponse($jobStatus);
+        try {
+            new VideoJobStatusResponse($jobStatus);
+            $this->fail('Expected InvalidPayloadException');
+        } catch (InvalidPayloadException $e) {
+            $this->assertStringContainsString('state', $e->getMessage());
+        }
     }
 
     public static function generateJobStatus(string $state = 'JOB_STATE_COMPLETED'): \stdClass

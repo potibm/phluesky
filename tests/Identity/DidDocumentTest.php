@@ -48,12 +48,15 @@ final class DidDocumentTest extends TestCase
 
     public function testMissingId(): void
     {
-        $this->expectException(InvalidPayloadException::class);
-
         $document = new \stdClass();
         $document->service = [];
 
-        new DidDocument($document);
+        try {
+            new DidDocument($document);
+            $this->fail('Expected InvalidPayloadException');
+        } catch (InvalidPayloadException $e) {
+            $this->assertStringContainsString('id', $e->getMessage());
+        }
     }
 
     public static function generateDidDocument(): \stdClass

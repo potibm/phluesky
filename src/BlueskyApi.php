@@ -9,7 +9,7 @@ use potibm\Bluesky\Exception\HttpRequestException;
 use potibm\Bluesky\Exception\HttpStatusCodeException;
 use potibm\Bluesky\Exception\InvalidPayloadException;
 use potibm\Bluesky\Feed\Post;
-use potibm\Bluesky\Identity\DidDocument;
+use potibm\Bluesky\Identity\DidResolver;
 use potibm\Bluesky\Response\CreateSessionResponse;
 use potibm\Bluesky\Response\RecordResponse;
 use potibm\Bluesky\Response\UploadBlobResponse;
@@ -28,6 +28,10 @@ final class BlueskyApi implements BlueskyApiInterface
     private const HTTP_OK = 200;
 
     private const HTTP_UNAUTHORIZED = 401;
+
+    private const MIME_TYPE_JSON = 'application/json';
+
+    private const AUTH_HEADER_PREFIX = 'Bearer ';
 
     /**
      * Refresh tokens are valid for roughly two months, see
@@ -196,73 +200,10 @@ final class BlueskyApi implements BlueskyApiInterface
     private function getPdsAudience(): string
     {
         if ($this->pdsDid === null) {
-            $this->pdsDid = $this->resolvePdsDid();
+            $this->pdsDid = (new DidResolver($this->options))->resolvePdsDid($this->getSession()->getDid());
         }
 
         return $this->pdsDid;
-    }
-
-    /**
-     * Resolve the DID of the PDS that hosts the current account. The public
-     * entryway (bsky.social) would report its own DID, so the account's DID
-     * document is resolved to find the actual PDS service endpoint.
-     */
-    private function resolvePdsDid(): string
-    {
-        $accountDid = $this->getSession()->getDid();
-
-        $didDocument = $this->fetchDidDocument($accountDid);
-        $endpoint = $didDocument->getPdsEndpoint();
-        if ($endpoint === null) {
-            throw new InvalidPayloadException('DID document does not contain an atproto PDS service: ' . $accountDid);
-        }
-
-        return $this->pdsDidFromEndpoint($endpoint);
-    }
-
-    private function fetchDidDocument(string $did): DidDocument
-    {
-        $uri = $this->options->uriFactory->createUri($this->buildDidDocumentUrl($did));
-        $request = $this->options->requestFactory->createRequest('GET', $uri)
-            ->withHeader('Accept', 'application/json');
-
-        return new DidDocument($this->decodeResponse($this->sendRequest($request)));
-    }
-
-    private function buildDidDocumentUrl(string $did): string
-    {
-        if (str_starts_with($did, 'did:plc:')) {
-            return 'https://plc.directory/' . $did;
-        }
-
-        if (str_starts_with($did, 'did:web:')) {
-            // did:web:example.com -> https://example.com/.well-known/did.json
-            // did:web:example.com:path -> https://example.com/path/did.json
-            // did:web:example.com%3A3000 -> https://example.com:3000/.well-known/did.json
-            $identifier = rawurldecode(substr($did, strlen('did:web:')));
-            $segments = explode(':', $identifier);
-            $host = array_shift($segments);
-            $path = $segments === [] ? '/.well-known/did.json' : '/' . implode('/', $segments) . '/did.json';
-
-            return 'https://' . $host . $path;
-        }
-
-        throw new InvalidPayloadException('Unsupported DID method: ' . $did);
-    }
-
-    private function pdsDidFromEndpoint(string $endpoint): string
-    {
-        $host = parse_url($endpoint, PHP_URL_HOST);
-        if (! is_string($host) || $host === '') {
-            throw new InvalidPayloadException('Unable to determine PDS host from endpoint: ' . $endpoint);
-        }
-
-        $port = parse_url($endpoint, PHP_URL_PORT);
-        if (is_int($port)) {
-            $host .= '%3A' . $port;
-        }
-
-        return 'did:web:' . $host;
     }
 
     /**
@@ -274,7 +215,7 @@ final class BlueskyApi implements BlueskyApiInterface
         string $method,
         array $params,
         string $body = '',
-        string $mimeType = 'application/json',
+        string $mimeType = self::MIME_TYPE_JSON,
         ?string $bearerToken = null
     ): \stdClass {
         $uri = $this->videoServiceUrl . 'xrpc/' . $method;
@@ -284,9 +225,9 @@ final class BlueskyApi implements BlueskyApiInterface
         $uriObject = $this->options->uriFactory->createUri($uri);
 
         $request = $this->options->requestFactory->createRequest($httpMethod, $uriObject);
-        $request = $request->withHeader('Accept', 'application/json');
+        $request = $request->withHeader('Accept', self::MIME_TYPE_JSON);
         if ($bearerToken !== null) {
-            $request = $request->withHeader('Authorization', 'Bearer ' . $bearerToken);
+            $request = $request->withHeader('Authorization', self::AUTH_HEADER_PREFIX . $bearerToken);
         }
 
         if ($body !== '') {
@@ -368,18 +309,13 @@ final class BlueskyApi implements BlueskyApiInterface
             [],
             [],
             [
-                'Authorization' => 'Bearer ' . $session->getRefreshToken(),
+                'Authorization' => self::AUTH_HEADER_PREFIX . $session->getRefreshToken(),
             ],
             false
         );
 
         $this->session = new CreateSessionResponse($jsonBody);
         $this->saveSession($this->session);
-    }
-
-    private function canRefresh(): bool
-    {
-        return $this->session !== null && $this->session->getRefreshToken() !== '';
     }
 
     private function saveSession(CreateSessionResponse $session): void
@@ -429,7 +365,7 @@ final class BlueskyApi implements BlueskyApiInterface
         $statusCode = $response->getStatusCode();
 
         if ($statusCode === self::HTTP_UNAUTHORIZED) {
-            if ($authenticated && ! $this->isRetrying && $this->canRefresh()) {
+            if ($authenticated && ! $this->isRetrying && $this->session !== null && $this->session->getRefreshToken() !== '') {
                 $this->isRetrying = true;
 
                 try {
@@ -472,11 +408,11 @@ final class BlueskyApi implements BlueskyApiInterface
         $uriObject = $this->options->uriFactory->createUri($uri);
 
         $headers = array_merge([
-            'Content-Type' => 'application/json',
-            'Accept' => 'application/json',
+            'Content-Type' => self::MIME_TYPE_JSON,
+            'Accept' => self::MIME_TYPE_JSON,
         ], $headers);
         if ($authenticated) {
-            $headers['Authorization'] = 'Bearer ' . $this->getSession()->getAuthToken();
+            $headers['Authorization'] = self::AUTH_HEADER_PREFIX . $this->getSession()->getAuthToken();
         }
 
         $request = $this->options->requestFactory->createRequest($httpMethod, $uriObject);

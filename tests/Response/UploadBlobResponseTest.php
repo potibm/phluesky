@@ -25,8 +25,12 @@ final class UploadBlobResponseTest extends TestCase
         $response->mimeType = 'image/jpeg';
         $response->size = 123;
 
-        $this->expectException(\potibm\Bluesky\Exception\InvalidPayloadException::class);
-        new UploadBlobResponse($response);
+        try {
+            new UploadBlobResponse($response);
+            $this->fail('Expected InvalidPayloadException');
+        } catch (\potibm\Bluesky\Exception\InvalidPayloadException $e) {
+            $this->assertStringContainsString('ref', $e->getMessage());
+        }
     }
 
     public function testJsonSerialize(): void

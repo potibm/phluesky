@@ -31,6 +31,8 @@ final class BlueskyPostService
 
     private const DEFAULT_VIDEO_FILENAME = 'video.mp4';
 
+    private const FILE_PATH_DEPRECATION_MESSAGE = 'Passing a file path string is deprecated. Use FileMediaSource instead.';
+
     public function __construct(
         private BlueskyApiInterface $blueskyClient,
         private int $videoPollingIntervalMilliseconds = 1000,
@@ -158,7 +160,7 @@ final class BlueskyPostService
     {
         if (is_string($imageFile)) {
             trigger_error(
-                'Passing a file path string is deprecated. Use FileMediaSource instead.',
+                self::FILE_PATH_DEPRECATION_MESSAGE,
                 E_USER_DEPRECATED
             );
 
@@ -192,7 +194,7 @@ final class BlueskyPostService
     {
         if (is_string($imageFile)) {
             trigger_error(
-                'Passing a file path string is deprecated. Use FileMediaSource instead.',
+                self::FILE_PATH_DEPRECATION_MESSAGE,
                 E_USER_DEPRECATED
             );
 
@@ -235,7 +237,7 @@ final class BlueskyPostService
     ): Post {
         if (is_string($videoFile)) {
             trigger_error(
-                'Passing a file path string is deprecated. Use FileMediaSource instead.',
+                self::FILE_PATH_DEPRECATION_MESSAGE,
                 E_USER_DEPRECATED
             );
 
