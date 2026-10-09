@@ -17,16 +17,22 @@ use potibm\Bluesky\Embed\AspectRatio;
 use potibm\Bluesky\Embed\External;
 use potibm\Bluesky\Embed\Images;
 use potibm\Bluesky\Embed\Record;
+use potibm\Bluesky\Embed\Video;
 use potibm\Bluesky\Exception\FileNotFoundException;
+use potibm\Bluesky\Exception\VideoUploadException;
 use potibm\Bluesky\Feed\Post;
 use potibm\Bluesky\Media\BlobMediaSource;
 use potibm\Bluesky\Media\FileMediaSource;
 use potibm\Bluesky\Response\RecordResponse;
+use potibm\Bluesky\Response\UploadBlobResponse;
+use potibm\Bluesky\Response\VideoJobStatusResponse;
 use potibm\Bluesky\Richtext\AbstractFacet;
 use potibm\Bluesky\Richtext\FacetLink;
 use potibm\Bluesky\Richtext\FacetMention;
 use potibm\Bluesky\Richtext\FacetTag;
 use potibm\Bluesky\Test\Response\RecordResponseTest;
+use potibm\Bluesky\Test\Response\UploadBlobResponseTest;
+use potibm\Bluesky\Test\Response\VideoJobStatusResponseTest;
 
 #[CoversClass(BlueskyPostService::class)]
 #[UsesClass(Post::class)]
@@ -35,11 +41,15 @@ use potibm\Bluesky\Test\Response\RecordResponseTest;
 #[UsesClass(FacetMention::class)]
 #[UsesClass(FacetTag::class)]
 #[UsesClass(Images::class)]
+#[UsesClass(Video::class)]
 #[UsesClass(AspectRatio::class)]
 #[UsesClass(External::class)]
 #[UsesClass(BlueskyUri::class)]
 #[UsesClass(Record::class)]
 #[UsesClass(RecordResponse::class)]
+#[UsesClass(UploadBlobResponse::class)]
+#[UsesClass(VideoJobStatusResponse::class)]
+#[UsesClass(VideoUploadException::class)]
 #[UsesClass(FileMediaSource::class)]
 #[UsesClass(BlobMediaSource::class)]
 #[UsesClass(FileNotFoundException::class)]
@@ -189,6 +199,199 @@ final class BlueskyPostServiceTest extends TestCase
         $this->postService->addImage($this->post, new FileMediaSource($file->url()), 'an alt text');
     }
 
+    public function testAddVideo(): void
+    {
+        $this->clientMock->expects($this->once())
+            ->method('getServiceAuth')
+            ->with('com.atproto.repo.uploadBlob')
+            ->willReturn('service-token');
+        $this->clientMock->expects($this->once())
+            ->method('uploadVideo')
+            ->with('video-data', 'video.mp4', 'video/mp4', 'service-token')
+            ->willReturn(new VideoJobStatusResponse(
+                VideoJobStatusResponseTest::generateJobStatus('JOB_STATE_COMPLETED')
+            ));
+
+        /** @psalm-suppress PossiblyNullArgument, PossiblyNullReference */
+        $resultPost = $this->postService->addVideo(
+            $this->post,
+            new BlobMediaSource('video-data', 'video/mp4'),
+            'an alt text',
+            new AspectRatio(16, 9)
+        );
+
+        $embed = $resultPost->getEmbed();
+        $this->assertInstanceOf(Video::class, $embed);
+        $this->assertInstanceOf(UploadBlobResponse::class, $embed->getVideo());
+        $this->assertEquals('an alt text', $embed->getAlt());
+        $this->assertEquals(new AspectRatio(16, 9), $embed->getAspectRatio());
+    }
+
+    public function testAttachVideo(): void
+    {
+        $blob = $this->createBlob();
+
+        /** @psalm-suppress PossiblyNullArgument, PossiblyNullReference */
+        $resultPost = $this->postService->attachVideo(
+            $this->post,
+            $blob,
+            'an alt text',
+            new AspectRatio(4, 3)
+        );
+
+        $embed = $resultPost->getEmbed();
+        $this->assertInstanceOf(Video::class, $embed);
+        $this->assertSame($blob, $embed->getVideo());
+        $this->assertEquals('an alt text', $embed->getAlt());
+        $this->assertEquals(new AspectRatio(4, 3), $embed->getAspectRatio());
+    }
+
+    public function testAttachVideoWithDefaults(): void
+    {
+        $blob = $this->createBlob();
+
+        /** @psalm-suppress PossiblyNullArgument, PossiblyNullReference */
+        $resultPost = $this->postService->attachVideo($this->post, $blob);
+
+        $embed = $resultPost->getEmbed();
+        $this->assertInstanceOf(Video::class, $embed);
+        $this->assertSame($blob, $embed->getVideo());
+        $this->assertEquals('', $embed->getAlt());
+        $this->assertNull($embed->getAspectRatio());
+
+        $json = $embed->jsonSerialize();
+        $this->assertIsArray($json);
+        $this->assertArrayNotHasKey('alt', $json);
+        $this->assertArrayNotHasKey('aspectRatio', $json);
+    }
+
+    public function testAddVideoWithCustomFilename(): void
+    {
+        $this->clientMock->method('getServiceAuth')->willReturn('service-token');
+        $this->clientMock->expects($this->once())
+            ->method('uploadVideo')
+            ->with('video-data', 'my-clip.mp4', 'video/mp4', 'service-token')
+            ->willReturn(new VideoJobStatusResponse(
+                VideoJobStatusResponseTest::generateJobStatus('JOB_STATE_COMPLETED')
+            ));
+
+        /** @psalm-suppress PossiblyNullArgument, PossiblyNullReference */
+        $resultPost = $this->postService->addVideo(
+            $this->post,
+            new BlobMediaSource('video-data', 'video/mp4'),
+            'an alt text',
+            null,
+            'my-clip.mp4'
+        );
+
+        $this->assertInstanceOf(Video::class, $resultPost->getEmbed());
+    }
+
+    public function testAddVideoPollsUntilCompleted(): void
+    {
+        $service = new BlueskyPostService($this->clientMock, 0, 5);
+
+        $this->clientMock->method('getServiceAuth')->willReturn('service-token');
+        $this->clientMock->method('uploadVideo')->willReturn(
+            new VideoJobStatusResponse(VideoJobStatusResponseTest::generateJobStatus('JOB_STATE_PROCESSING'))
+        );
+        $this->clientMock->expects($this->exactly(2))
+            ->method('getVideoJobStatus')
+            ->willReturnOnConsecutiveCalls(
+                new VideoJobStatusResponse(VideoJobStatusResponseTest::generateJobStatus('JOB_STATE_ENCODING')),
+                new VideoJobStatusResponse(VideoJobStatusResponseTest::generateJobStatus('JOB_STATE_COMPLETED'))
+            );
+
+        $resultPost = $service->addVideo(
+            $this->post,
+            new BlobMediaSource('video-data', 'video/mp4'),
+            '',
+            null
+        );
+
+        $this->assertInstanceOf(Video::class, $resultPost->getEmbed());
+    }
+
+    public function testAddVideoThrowsOnFailedJob(): void
+    {
+        $this->clientMock->method('getServiceAuth')->willReturn('service-token');
+        $this->clientMock->method('uploadVideo')->willReturn(
+            new VideoJobStatusResponse(VideoJobStatusResponseTest::generateJobStatus('JOB_STATE_FAILED'))
+        );
+
+        $this->expectException(VideoUploadException::class);
+        $this->expectExceptionMessage('Video processing failed (job job-123)');
+
+        /** @psalm-suppress PossiblyNullArgument, PossiblyNullReference */
+        $this->postService->addVideo(
+            $this->post,
+            new BlobMediaSource('video-data', 'video/mp4'),
+            '',
+            null
+        );
+    }
+
+    public function testAddVideoRejectsNonMp4(): void
+    {
+        $this->expectException(VideoUploadException::class);
+        $this->expectExceptionMessage('only supports video/mp4');
+
+        /** @psalm-suppress PossiblyNullArgument, PossiblyNullReference */
+        $this->postService->addVideo(
+            $this->post,
+            new BlobMediaSource('video-data', 'video/webm'),
+            '',
+            null
+        );
+    }
+
+    public function testAddVideoTimesOut(): void
+    {
+        $service = new BlueskyPostService($this->clientMock, 0, 2);
+
+        $this->clientMock->method('getServiceAuth')->willReturn('service-token');
+        $this->clientMock->method('uploadVideo')->willReturn(
+            new VideoJobStatusResponse(VideoJobStatusResponseTest::generateJobStatus('JOB_STATE_PROCESSING'))
+        );
+        $this->clientMock->expects($this->exactly(2))
+            ->method('getVideoJobStatus')
+            ->willReturn(
+                new VideoJobStatusResponse(VideoJobStatusResponseTest::generateJobStatus('JOB_STATE_PROCESSING'))
+            );
+
+        $this->expectException(VideoUploadException::class);
+        $this->expectExceptionMessage('did not complete');
+
+        $service->addVideo(
+            $this->post,
+            new BlobMediaSource('video-data', 'video/mp4'),
+            '',
+            null
+        );
+    }
+
+    #[IgnoreDeprecations]
+    public function testAddVideoWithStringPathTriggersDeprecation(): void
+    {
+        $this->expectUserDeprecationMessage('Passing a file path string is deprecated. Use FileMediaSource instead.');
+
+        $videoPath = $this->createTemporaryVideoFile();
+
+        $this->clientMock->method('getServiceAuth')->willReturn('service-token');
+        $this->clientMock->method('uploadVideo')->willReturn(
+            new VideoJobStatusResponse(VideoJobStatusResponseTest::generateJobStatus('JOB_STATE_COMPLETED'))
+        );
+
+        try {
+            /** @psalm-suppress PossiblyNullArgument, PossiblyNullReference */
+            $resultPost = $this->postService->addVideo($this->post, $videoPath, 'an alt text');
+
+            $this->assertInstanceOf(Video::class, $resultPost->getEmbed());
+        } finally {
+            @unlink($videoPath);
+        }
+    }
+
     public function testAddExternal(): void
     {
         /** @psalm-suppress PossiblyNullArgument, PossiblyNullReference */
@@ -312,5 +515,18 @@ final class BlueskyPostServiceTest extends TestCase
             ->willReturn('did:plc:ewvi7nxzyoun6zhxrhs64oiz');
 
         $this->postService = new BlueskyPostService($this->clientMock);
+    }
+
+    private function createBlob(): UploadBlobResponse
+    {
+        return new UploadBlobResponse(UploadBlobResponseTest::generateBlobResponse());
+    }
+
+    private function createTemporaryVideoFile(): string
+    {
+        $path = (string) tempnam(sys_get_temp_dir(), 'phluesky_video_');
+        file_put_contents($path, "\x00\x00\x00\x18ftypmp42\x00\x00\x00\x00mp42isom");
+
+        return $path;
     }
 }

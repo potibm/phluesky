@@ -9,20 +9,29 @@ use potibm\Bluesky\Exception\HttpRequestException;
 use potibm\Bluesky\Exception\HttpStatusCodeException;
 use potibm\Bluesky\Exception\InvalidPayloadException;
 use potibm\Bluesky\Feed\Post;
+use potibm\Bluesky\Identity\DidResolver;
 use potibm\Bluesky\Response\CreateSessionResponse;
 use potibm\Bluesky\Response\RecordResponse;
 use potibm\Bluesky\Response\UploadBlobResponse;
+use potibm\Bluesky\Response\VideoJobStatusResponse;
 use Psr\Http\Client\ClientExceptionInterface;
 use Psr\Http\Message\RequestInterface;
+use Psr\Http\Message\ResponseInterface;
 use Psr\SimpleCache\CacheInterface;
 
 final class BlueskyApi implements BlueskyApiInterface
 {
     private const BASE_URL = 'https://bsky.social/';
 
+    private const VIDEO_SERVICE_URL = 'https://video.bsky.app/';
+
     private const HTTP_OK = 200;
 
     private const HTTP_UNAUTHORIZED = 401;
+
+    private const MIME_TYPE_JSON = 'application/json';
+
+    private const AUTH_HEADER_PREFIX = 'Bearer ';
 
     /**
      * Refresh tokens are valid for roughly two months, see
@@ -32,6 +41,8 @@ final class BlueskyApi implements BlueskyApiInterface
 
     private ?CreateSessionResponse $session = null;
 
+    private ?string $pdsDid = null;
+
     private bool $isRetrying = false;
 
     public function __construct(
@@ -39,7 +50,8 @@ final class BlueskyApi implements BlueskyApiInterface
         private string $password,
         private HttpComponentsManager $options = new HttpComponentsManager(),
         private string $baseUrl = self::BASE_URL,
-        private ?CacheInterface $cache = null
+        private ?CacheInterface $cache = null,
+        private string $videoServiceUrl = self::VIDEO_SERVICE_URL
     ) {
         if ($this->cache !== null) {
             $cachedSession = $this->cache->get($this->getCacheKey());
@@ -129,6 +141,132 @@ final class BlueskyApi implements BlueskyApiInterface
         return new UploadBlobResponse($jsonBody->blob);
     }
 
+    #[\Override]
+    public function getServiceAuth(string $lexiconMethod, int $expirySeconds = 1800, ?string $audience = null): string
+    {
+        $jsonBody = $this->performXrpcCall(
+            'GET',
+            'com.atproto.server.getServiceAuth',
+            [
+                'aud' => $audience ?? $this->getPdsAudience(),
+                'lxm' => $lexiconMethod,
+                'exp' => time() + $expirySeconds,
+            ],
+            [],
+            [],
+            true,
+            false
+        );
+
+        if (! property_exists($jsonBody, 'token')) {
+            throw new InvalidPayloadException('JSON response does not contain "token" property');
+        }
+
+        return (string) $jsonBody->token;
+    }
+
+    #[\Override]
+    public function uploadVideo(string $video, string $filename, string $mimeType, string $serviceAuthToken): VideoJobStatusResponse
+    {
+        $jsonBody = $this->performVideoServiceCall(
+            'POST',
+            'app.bsky.video.uploadVideo',
+            [
+                'did' => $this->getSession()->getDid(),
+                'name' => $filename,
+            ],
+            $video,
+            $mimeType,
+            $serviceAuthToken
+        );
+
+        return VideoJobStatusResponse::fromResponse($jsonBody);
+    }
+
+    #[\Override]
+    public function getVideoJobStatus(string $jobId): VideoJobStatusResponse
+    {
+        $jsonBody = $this->performVideoServiceCall(
+            'GET',
+            'app.bsky.video.getJobStatus',
+            [
+                'jobId' => $jobId,
+            ]
+        );
+
+        return VideoJobStatusResponse::fromResponse($jsonBody);
+    }
+
+    private function getPdsAudience(): string
+    {
+        if ($this->pdsDid === null) {
+            $this->pdsDid = (new DidResolver($this->options))->resolvePdsDid($this->getSession()->getDid());
+        }
+
+        return $this->pdsDid;
+    }
+
+    /**
+     * Perform an XRPC call against the video service. Unlike performXrpcCall()
+     * this never uses the user session and does not attempt to refresh it.
+     */
+    private function performVideoServiceCall(
+        string $httpMethod,
+        string $method,
+        array $params,
+        string $body = '',
+        string $mimeType = self::MIME_TYPE_JSON,
+        ?string $bearerToken = null
+    ): \stdClass {
+        $uri = $this->videoServiceUrl . 'xrpc/' . $method;
+        if ($params) {
+            $uri .= '?' . http_build_query($params);
+        }
+        $uriObject = $this->options->uriFactory->createUri($uri);
+
+        $request = $this->options->requestFactory->createRequest($httpMethod, $uriObject);
+        $request = $request->withHeader('Accept', self::MIME_TYPE_JSON);
+        if ($bearerToken !== null) {
+            $request = $request->withHeader('Authorization', self::AUTH_HEADER_PREFIX . $bearerToken);
+        }
+
+        if ($body !== '') {
+            $request = $request->withHeader('Content-Type', $mimeType);
+            $request = $request->withHeader('Content-Length', (string) strlen($body));
+            $request = $request->withBody($this->options->streamFactory->createStream($body));
+        }
+
+        return $this->decodeResponse($this->sendRequest($request));
+    }
+
+    private function sendRequest(RequestInterface $request): ResponseInterface
+    {
+        try {
+            return $this->options->httpClient->sendRequest($request);
+        } catch (ClientExceptionInterface $e) {
+            // Handle network or HTTP client errors
+            throw new HttpRequestException('Failed to send the request: ' . $e->getMessage());
+        }
+    }
+
+    private function decodeResponse(ResponseInterface $response): \stdClass
+    {
+        $statusCode = $response->getStatusCode();
+
+        if ($statusCode !== self::HTTP_OK) {
+            throw new HttpStatusCodeException('Received an HTTP error (' . $statusCode . '): ' . (string) $response->getBody(), $statusCode);
+        }
+
+        $jsonBody = json_decode((string) $response->getBody(), false);
+
+        if ($jsonBody === null) {
+            // Handle JSON decoding errors
+            throw new InvalidPayloadException('Failed to decode JSON response');
+        }
+
+        return $jsonBody;
+    }
+
     private function getSession(): CreateSessionResponse
     {
         if ($this->session === null) {
@@ -171,18 +309,13 @@ final class BlueskyApi implements BlueskyApiInterface
             [],
             [],
             [
-                'Authorization' => 'Bearer ' . $session->getRefreshToken(),
+                'Authorization' => self::AUTH_HEADER_PREFIX . $session->getRefreshToken(),
             ],
             false
         );
 
         $this->session = new CreateSessionResponse($jsonBody);
         $this->saveSession($this->session);
-    }
-
-    private function canRefresh(): bool
-    {
-        return $this->session !== null && $this->session->getRefreshToken() !== '';
     }
 
     private function saveSession(CreateSessionResponse $session): void
@@ -227,17 +360,12 @@ final class BlueskyApi implements BlueskyApiInterface
     ): \stdClass {
         $request = $this->buildRequest($httpMethod, $method, $params, $body, $headers, $authenticated, $encodeBody);
 
-        try {
-            $response = $this->options->httpClient->sendRequest($request);
-        } catch (ClientExceptionInterface $e) {
-            // Handle network or HTTP client errors
-            throw new HttpRequestException('Failed to send the request: ' . $e->getMessage());
-        }
+        $response = $this->sendRequest($request);
 
         $statusCode = $response->getStatusCode();
 
         if ($statusCode === self::HTTP_UNAUTHORIZED) {
-            if ($authenticated && ! $this->isRetrying && $this->canRefresh()) {
+            if ($authenticated && ! $this->isRetrying && $this->session !== null && $this->session->getRefreshToken() !== '') {
                 $this->isRetrying = true;
 
                 try {
@@ -256,18 +384,7 @@ final class BlueskyApi implements BlueskyApiInterface
             throw new AuthenticationErrorException('Authentication failed: ' . (string) $response->getBody(), 401);
         }
 
-        if ($statusCode != self::HTTP_OK) {
-            throw new HttpStatusCodeException('Received an HTTP error (' . $statusCode . '): ' . (string) $response->getBody(), $statusCode);
-        }
-
-        $jsonBody = json_decode((string) $response->getBody(), false);
-
-        if ($jsonBody === null) {
-            // Handle JSON decoding errors
-            throw new InvalidPayloadException('Failed to decode JSON response');
-        }
-
-        return $jsonBody;
+        return $this->decodeResponse($response);
     }
 
     /**
@@ -291,11 +408,11 @@ final class BlueskyApi implements BlueskyApiInterface
         $uriObject = $this->options->uriFactory->createUri($uri);
 
         $headers = array_merge([
-            'Content-Type' => 'application/json',
-            'Accept' => 'application/json',
+            'Content-Type' => self::MIME_TYPE_JSON,
+            'Accept' => self::MIME_TYPE_JSON,
         ], $headers);
         if ($authenticated) {
-            $headers['Authorization'] = 'Bearer ' . $this->getSession()->getAuthToken();
+            $headers['Authorization'] = self::AUTH_HEADER_PREFIX . $this->getSession()->getAuthToken();
         }
 
         $request = $this->options->requestFactory->createRequest($httpMethod, $uriObject);

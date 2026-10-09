@@ -77,6 +77,75 @@ $post = $postService->addImage(
 > Passing a file path string (e.g. `$postService->addImage($post, 'image.jpg', 'alt text')`)
 > is deprecated and will be removed in a future version. Use `FileMediaSource` instead.
 
+### Adding videos
+
+[app.bsky.embed.video](https://docs.bsky.app/docs/tutorials/video)
+
+Videos are provided through a `MediaSource` too, just like images. They are
+uploaded through the Bluesky video service (`app.bsky.video.uploadVideo`), which
+processes the video and stores an optimized version on the PDS. This supports
+videos up to currently 300 MB, but only accepts `video/mp4`.
+
+```php
+use potibm\Bluesky\Media\BlobMediaSource;
+use potibm\Bluesky\Media\FileMediaSource;
+
+$post = \potibm\Bluesky\Feed\Post::create('example post with video attached');
+
+$post = $postService->addVideo(
+    $post,
+    new FileMediaSource('clip.mp4'),
+    'alt text'
+);
+
+// The optional filename is the name reported to the video service and defaults
+// to "video.mp4".
+$post = $postService->addVideo(
+    $post,
+    new BlobMediaSource($videoData, 'video/mp4'),
+    'alt text',
+    null,
+    'my-clip.mp4'
+);
+```
+
+`addVideo()` blocks until the video service reports that processing completed.
+The polling interval and maximum number of attempts can be configured through the
+`BlueskyPostService` constructor:
+
+```php
+$postService = new \potibm\Bluesky\BlueskyPostService(
+    $api,
+    videoPollingIntervalMilliseconds: 1000,
+    videoPollingMaxAttempts: 300
+);
+```
+
+Failed or timed out video processing throws a
+`potibm\Bluesky\Exception\VideoUploadException`.
+
+#### Driving the video upload yourself
+
+If blocking polling does not fit your application (for example if you want to
+process the upload in a queue), you can use the individual building blocks and
+attach the resulting blob afterwards:
+
+```php
+// a) upload the video and get the processing job
+$token = $api->getServiceAuth('com.atproto.repo.uploadBlob');
+$job = $api->uploadVideo($videoData, 'clip.mp4', 'video/mp4', $token);
+
+// b) keep the job id around, e.g. for later polling
+$jobId = $job->getJobId();
+
+// c) poll whenever and wherever you like
+$job = $api->getVideoJobStatus($jobId);
+if ($job->isCompleted()) {
+    // d) attach the processed blob to the post
+    $post = $postService->attachVideo($post, $job->getBlob(), 'alt text');
+}
+```
+
 ### Adding website card embeds
 
 [https://atproto.com/blog/create-post#website-card-embeds](https://atproto.com/blog/create-post#website-card-embeds)

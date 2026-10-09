@@ -8,10 +8,13 @@ use potibm\Bluesky\Embed\AspectRatio;
 use potibm\Bluesky\Embed\External;
 use potibm\Bluesky\Embed\Images;
 use potibm\Bluesky\Embed\Record;
+use potibm\Bluesky\Embed\Video;
+use potibm\Bluesky\Exception\VideoUploadException;
 use potibm\Bluesky\Feed\Post;
 use potibm\Bluesky\Media\FileMediaSource;
 use potibm\Bluesky\Media\MediaSource;
 use potibm\Bluesky\Response\UploadBlobResponseInterface;
+use potibm\Bluesky\Response\VideoJobStatusResponse;
 use potibm\Bluesky\Richtext\FacetLink;
 use potibm\Bluesky\Richtext\FacetMention;
 use potibm\Bluesky\Richtext\FacetTag;
@@ -24,8 +27,16 @@ final class BlueskyPostService
     private const REGEXP_URL = 'https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~\#=]{1,256}\.' .
         '[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~\#?&//=]*[-a-zA-Z0-9@%_\+~\#//=])?';
 
+    private const VIDEO_MIME_TYPE_MP4 = 'video/mp4';
+
+    private const DEFAULT_VIDEO_FILENAME = 'video.mp4';
+
+    private const FILE_PATH_DEPRECATION_MESSAGE = 'Passing a file path string is deprecated. Use FileMediaSource instead.';
+
     public function __construct(
-        private BlueskyApiInterface $blueskyClient
+        private BlueskyApiInterface $blueskyClient,
+        private int $videoPollingIntervalMilliseconds = 1000,
+        private int $videoPollingMaxAttempts = 300
     ) {
     }
 
@@ -149,7 +160,7 @@ final class BlueskyPostService
     {
         if (is_string($imageFile)) {
             trigger_error(
-                'Passing a file path string is deprecated. Use FileMediaSource instead.',
+                self::FILE_PATH_DEPRECATION_MESSAGE,
                 E_USER_DEPRECATED
             );
 
@@ -183,7 +194,7 @@ final class BlueskyPostService
     {
         if (is_string($imageFile)) {
             trigger_error(
-                'Passing a file path string is deprecated. Use FileMediaSource instead.',
+                self::FILE_PATH_DEPRECATION_MESSAGE,
                 E_USER_DEPRECATED
             );
 
@@ -202,6 +213,122 @@ final class BlueskyPostService
         $resultPost->setEmbed($card);
 
         return $resultPost;
+    }
+
+    /**
+     * Attach a video to the post.
+     *
+     * The video is uploaded through the Bluesky video service
+     * (app.bsky.video.uploadVideo), processed asynchronously and stored on the
+     * PDS. This supports larger videos (currently up to 300 MB) but only accepts
+     * video/mp4. The library polls the video service until processing completes.
+     *
+     * @param string|MediaSource $videoFile a MediaSource, or a file path (deprecated)
+     * @param string|null        $filename  filename reported to the video service, defaults to "video.mp4"
+     *
+     * @throws VideoUploadException when the upload fails or processing times out
+     */
+    public function addVideo(
+        Post $post,
+        string|MediaSource $videoFile,
+        string $alt = '',
+        ?AspectRatio $aspectRatio = null,
+        ?string $filename = null
+    ): Post {
+        if (is_string($videoFile)) {
+            trigger_error(
+                self::FILE_PATH_DEPRECATION_MESSAGE,
+                E_USER_DEPRECATED
+            );
+
+            return $this->addVideo($post, new FileMediaSource($videoFile), $alt, $aspectRatio, $filename);
+        }
+
+        $blob = $this->uploadVideoViaService($videoFile, $filename);
+
+        return $this->attachVideo($post, $blob, $alt, $aspectRatio);
+    }
+
+    /**
+     * Attach a video blob that was uploaded previously to the post.
+     *
+     * Use this when you want to drive the upload and processing yourself, for
+     * example to poll the video service in the background instead of blocking:
+     *
+     *   $token = $api->getServiceAuth('com.atproto.repo.uploadBlob');
+     *   $job = $api->uploadVideo($data, 'clip.mp4', 'video/mp4', $token);
+     *   // ... poll $api->getVideoJobStatus($job->getJobId()) until completed ...
+     *   $post = $postService->attachVideo($post, $job->getBlob(), 'alt text');
+     */
+    public function attachVideo(
+        Post $post,
+        UploadBlobResponseInterface $blob,
+        string $alt = '',
+        ?AspectRatio $aspectRatio = null
+    ): Post {
+        $resultPost = clone $post;
+        $resultPost->setEmbed(Video::create($blob, $alt, $aspectRatio));
+
+        return $resultPost;
+    }
+
+    /**
+     * @throws VideoUploadException
+     */
+    private function uploadVideoViaService(MediaSource $source, ?string $filename): UploadBlobResponseInterface
+    {
+        if ($source->getMimeType() !== self::VIDEO_MIME_TYPE_MP4) {
+            throw new VideoUploadException(
+                'The advanced video upload only supports video/mp4, got ' . $source->getMimeType()
+            );
+        }
+
+        $serviceAuthToken = $this->blueskyClient->getServiceAuth('com.atproto.repo.uploadBlob');
+
+        $jobStatus = $this->blueskyClient->uploadVideo(
+            $source->getData(),
+            $filename ?? self::DEFAULT_VIDEO_FILENAME,
+            $source->getMimeType(),
+            $serviceAuthToken
+        );
+
+        return $this->waitForVideoJob($jobStatus);
+    }
+
+    /**
+     * @throws VideoUploadException
+     */
+    private function waitForVideoJob(VideoJobStatusResponse $jobStatus): UploadBlobResponseInterface
+    {
+        $attempts = 0;
+
+        while (! $jobStatus->isCompleted() && ! $jobStatus->isFailed()) {
+            $attempts++;
+            if ($attempts > $this->videoPollingMaxAttempts) {
+                throw new VideoUploadException(
+                    'Video processing did not complete within the expected time (job ' . $jobStatus->getJobId() . ')'
+                );
+            }
+
+            usleep($this->videoPollingIntervalMilliseconds * 1000);
+            $jobStatus = $this->blueskyClient->getVideoJobStatus($jobStatus->getJobId());
+        }
+
+        if ($jobStatus->isFailed()) {
+            $reason = $jobStatus->getMessage() ?? $jobStatus->getFailureCode() ?? 'unknown error';
+            throw new VideoUploadException(
+                'Video processing failed (job ' . $jobStatus->getJobId() . '): ' . $reason
+            );
+        }
+
+        $blob = $jobStatus->getBlob();
+        if ($blob === null) {
+            throw new VideoUploadException(
+                'Video processing completed without a blob (job ' . $jobStatus->getJobId() . ')'
+            );
+        }
+
+        return $blob;
     }
 
     private function uploadMediaSource(MediaSource $source): UploadBlobResponseInterface
