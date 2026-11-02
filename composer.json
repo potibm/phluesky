@@ -27,7 +27,7 @@
     "php-http/discovery": "^1.19"
   },
   "require-dev": {
-    "phpunit/phpunit": "^11",
+    "phpunit/phpunit": "^13",
     "nyholm/psr7": "^1.8",
     "symfony/http-client": "^7.0",
     "symplify/easy-coding-standard": "^13.0.0",
